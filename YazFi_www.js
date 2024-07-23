@@ -1,5 +1,5 @@
 /**----------------------------------------**/
-/** Modified by Martinski W. [2023-Mar-24] **/
+/** Modified by Martinski W. [2024-Jul-21] **/
 /**----------------------------------------**/
 var clientswl01 = []; var sortnamewl01 = 'Hostname'; var sortdirwl01 = 'asc';
 var clientswl02 = []; var sortnamewl02 = 'Hostname'; var sortdirwl02 = 'asc';
@@ -17,6 +17,12 @@ var clientswl33 = []; var sortnamewl33 = 'Hostname'; var sortdirwl33 = 'asc';
 var tout;
 var numOfBands = 0;
 var failedfields = [];
+
+/**----------------------------------------**/
+/** Modified by Martinski W. [2024-Jul-21] **/
+/**----------------------------------------**/
+let theProductID = '<% nvram_get("productid"); %>';
+theProductID = theProductID.toUpperCase();
 
 /**----------------------------------------------**/
 /** Added/modified by Martinski W. [2023-Jan-29] **/
@@ -135,9 +141,9 @@ const theDHCPEnd=
    { return (`End of DHCP pool (${this.minVal}-${this.maxVal})`); }
 };
 
-/**-------------------------------------**/
-/** Added by Martinski W. [2022-Dec-23] **/
-/**-------------------------------------**/
+/**----------------------------------------**/
+/** Modified by Martinski W. [2024-Jul-21] **/
+/**----------------------------------------**/
 const listOfGUIFieldNames=
 [ 'enabled', 'ipaddr', theDHCPStart.varName, theDHCPEnd.varName, theDHCPLeaseTime.varName, 'dns1', 'dns2', 'vpnclientnumber', 'allowinternet', 'forcedns', 'redirectalltovpn', 'onewaytoguest', 'twowaytoguest', 'clientisolation' ];
 
@@ -145,6 +151,7 @@ const band_24GHz='24G';
 const band_5GHz_1='5G_1';
 const band_5GHz_2='5G_2';
 const band_6GHz_1='6G_1';
+const band_6GHz_2='6G_2';
 
 const theGuestNet=
 {
@@ -161,17 +168,19 @@ const theGuestNet=
       {
          uiLabel: '2.4GHz',
          bandType: band_24GHz,
-         ifPrefix: function()
+         IFnamePrefix: function()
          {
-            if (productid == 'GT-AXE16000')
+            if (theProductID == 'GT-BE98'     ||
+                theProductID == 'GT-BE98_PRO' ||
+                theProductID == 'GT-AXE16000')
             return ('wl3');
             else
             return ('wl0');
          },
-         supported: function()
+         isSupported: function()
          {
             if (typeof wl_info == 'undefined' || wl_info == null)
-            return (true);
+            return (band2g_support);
             else
             return (wl_info.band2g_support);
          }
@@ -179,17 +188,19 @@ const theGuestNet=
       {
          uiLabel: '5GHz',
          bandType: band_5GHz_1,
-         ifPrefix: function()
+         IFnamePrefix: function()
          {
-            if (productid == 'GT-AXE16000')
+            if (theProductID == 'GT-BE98'     ||
+                theProductID == 'GT-BE98_PRO' ||
+                theProductID == 'GT-AXE16000')
             return ('wl0');
             else
             return ('wl1');
          },
-         supported: function()
+         isSupported: function()
          {
             if (typeof wl_info == 'undefined' || wl_info == null)
-            return (true);
+            return (band5g_support);
             else
             return (wl_info.band5g_support);
          }
@@ -197,30 +208,60 @@ const theGuestNet=
       {
          uiLabel: '5GHz-2',
          bandType: band_5GHz_2,
-         ifPrefix: function()
+         IFnamePrefix: function()
          {
-            if (productid == 'GT-AXE16000')
+            if (theProductID == 'GT-BE98' ||
+                theProductID == 'GT-AXE16000')
             return ('wl1');
-            else if (wl_info.band5g_2_support)
-            return ('wl2');
             else
-            return (null);
+            return ('wl2');
          },
-         supported: function()
-         { return (wl_info.band5g_2_support); }
+         isSupported: function()
+         {
+            if (typeof wl_info == 'undefined' || wl_info == null)
+            return (band5g2_support);
+            else
+            return (wl_info.band5g_2_support);
+         }
       },
       {
          uiLabel: '6GHz',
          bandType: band_6GHz_1,
-         ifPrefix: function()
+         IFnamePrefix: function()
          {
-            if (productid == 'GT-AXE16000' || wl_info.band6g_support)
+            if (theProductID == 'GT-BE98_PRO')
+            return ('wl1');
+            else
+            return ('wl2');
+         },
+         isSupported: function()
+         {
+            if (typeof wl_info == 'undefined' || wl_info == null)
+            return (band6g_support);
+            else if (typeof wl_info.band6g_support != 'undefined') 
+            return (wl_info.band6g_support);
+            else
+            return (false);
+         }
+      },
+      {
+         uiLabel: '6GHz-2',
+         bandType: band_6GHz_2,
+         IFnamePrefix: function()
+         {
+            if (theProductID == 'GT-BE98_PRO')
             return ('wl2');
             else
             return (null);
          },
-         supported: function()
-         { return (wl_info.band6g_support); }
+         isSupported: function()
+         {
+            if (typeof wl_info == 'undefined' || wl_info == null ||
+                typeof wl_info.band6g_2_support == 'undefined')
+            return (false)
+            else
+            return (wl_info.band6g_2_support)
+         }
       }
    ],
 
@@ -229,9 +270,9 @@ const theGuestNet=
       let theIFprefix='';
       for (var cnt=0; cnt < this.wifiBands.length; cnt++)
       {
-         if (this.wifiBands[cnt].supported() &&
+         if (this.wifiBands[cnt].isSupported() &&
              theBandType == this.wifiBands[cnt].bandType)
-         { theIFprefix=this.wifiBands[cnt].ifPrefix(); break; }
+         { theIFprefix=this.wifiBands[cnt].IFnamePrefix(); break; }
       }
       return (theIFprefix);
    },
@@ -241,7 +282,7 @@ const theGuestNet=
       let theUILabel='';
       for (var cnt=0; cnt < this.wifiBands.length; cnt++)
       {
-         if (this.wifiBands[cnt].supported() &&
+         if (this.wifiBands[cnt].isSupported() &&
              theBandType == this.wifiBands[cnt].bandType)
          { theUILabel=this.wifiBands[cnt].uiLabel; break; }
       }
@@ -253,8 +294,8 @@ const theGuestNet=
       let theUILabel='';
       for (var cnt=0; cnt < this.wifiBands.length; cnt++)
       {
-         if (this.wifiBands[cnt].supported() &&
-             theIFnamePrefix == this.wifiBands[cnt].ifPrefix())
+         if (this.wifiBands[cnt].isSupported() &&
+             theIFnamePrefix == this.wifiBands[cnt].IFnamePrefix())
          { theUILabel=this.wifiBands[cnt].uiLabel; break; }
       }
       return (theUILabel);
@@ -652,7 +693,7 @@ function Validate_All(){
 }
 
 /**----------------------------------------**/
-/** Modified by Martinski W. [2022-Dec-23] **/
+/** Modified by Martinski W. [2024-Jul-21] **/
 /**----------------------------------------**/
 function get_conf_file(){
 	$j.ajax({
@@ -682,7 +723,7 @@ function get_conf_file(){
 				window['yazfi_settings'].unshift(setting);
 			}
 
-			if(typeof wl_info == 'undefined' || wl_info == null)
+			if (typeof wl_info == 'undefined' || wl_info == null)
 			{
 				numOfBands = 2;
 
@@ -702,7 +743,8 @@ function get_conf_file(){
 			else
 			{
 				showIFprefix=wl_info.band6g_support;
-				if(wl_info.band2g_support)
+
+				if (wl_info.band2g_support)
 				{
 					theIFprefixTag='';
 					ifacePrefix=theGuestNet.IFacePrefix (band_24GHz);
@@ -713,7 +755,7 @@ function get_conf_file(){
 					$j('#table_config').append(BuildConfigTable(ifacePrefix, guestNetUILabel));
 					numOfBands = numOfBands+1;
 				}
-				if(wl_info.band5g_support)
+				if (wl_info.band5g_support)
 				{
 					theIFprefixTag='';
 					ifacePrefix=theGuestNet.IFacePrefix (band_5GHz_1);
@@ -725,7 +767,7 @@ function get_conf_file(){
 					$j('#table_config').append(BuildConfigTable(ifacePrefix, guestNetUILabel));
 					numOfBands = numOfBands+1;
 				}
-				if(wl_info.band5g_2_support)
+				if (wl_info.band5g_2_support)
 				{
 					theIFprefixTag='';
 					ifacePrefix=theGuestNet.IFacePrefix (band_5GHz_2);
@@ -737,11 +779,25 @@ function get_conf_file(){
 					$j('#table_config').append(BuildConfigTable(ifacePrefix, guestNetUILabel));
 					numOfBands = numOfBands+1;
 				}
-				if(wl_info.band6g_support)
+				if (typeof wl_info.band6g_support != 'undefined' &&
+				    wl_info.band6g_support)
 				{
 					theIFprefixTag='';
 					ifacePrefix=theGuestNet.IFacePrefix (band_6GHz_1);
 					ifaceUILabel=theGuestNet.IFaceUILabel (band_6GHz_1);
+					if (showIFprefix) theIFprefixTag=` [${ifacePrefix}]`;
+					guestNetUILabel=`${ifaceUILabel}${theIFprefixTag} Guest Networks`;
+
+					$j('#table_config').append('<tr><td style="padding:0px;height:10px;"></td></tr>');
+					$j('#table_config').append(BuildConfigTable(ifacePrefix, guestNetUILabel));
+					numOfBands = numOfBands+1;
+				}
+				if (typeof wl_info.band6g_2_support != 'undefined' &&
+				    wl_info.band6g_2_support)
+				{
+					theIFprefixTag='';
+					ifacePrefix=theGuestNet.IFacePrefix (band_6GHz_2);
+					ifaceUILabel=theGuestNet.IFaceUILabel (band_6GHz_2);
 					if (showIFprefix) theIFprefixTag=` [${ifacePrefix}]`;
 					guestNetUILabel=`${ifaceUILabel}${theIFprefixTag} Guest Networks`;
 

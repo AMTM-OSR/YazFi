@@ -16,7 +16,7 @@
 ##    guest network DHCP script and for    ##
 ##         AsusWRT-Merlin firmware         ##
 #############################################
-# Last Modified: 2024-Jan-06
+# Last Modified: 2024-Jul-21
 #--------------------------------------------------
 
 ######       Shellcheck directives     ######
@@ -65,11 +65,12 @@ readonly CLEARFORMAT="\\e[0m"
 ### Start of router environment variables ###
 
 ##----------------------------------------##
-## Modified by Martinski W. [2023-Dec-20] ##
+## Modified by Martinski W. [2024-Jun-23] ##
 ##----------------------------------------##
 readonly LAN_IPaddr="$(nvram get lan_ipaddr)"
 readonly LAN_IFname="$(nvram get lan_ifname)"
-[ -z "$(nvram get odmpid)" ] && ROUTER_MODEL=$(nvram get productid) || ROUTER_MODEL=$(nvram get odmpid)
+[ -z "$(nvram get odmpid)" ] && ROUTER_MODEL="$(nvram get productid)" || ROUTER_MODEL="$(nvram get odmpid)"
+ROUTER_MODEL="$(echo "$ROUTER_MODEL" | tr 'a-z' 'A-Z')"
 
 ##-------------------------------------##
 ## Added by Martinski W. [2022-Nov-18] ##
@@ -133,30 +134,69 @@ readonly MaxDHCPLeaseTime=7776000
 readonly InfiniteLeaseTimeTag="I"
 readonly InfiniteLeaseTimeVal="infinite"
 
-##-------------------------------------##
-## Added by Martinski W. [2022-Dec-23] ##
-##-------------------------------------##
+##----------------------------------------##
+## Modified by Martinski W. [2024-Jun-23] ##
+##----------------------------------------##
 readonly SUPPORTstr="$(nvram get rc_support)"
 
+Band_24G_Support=false
+Band_5G_1_Support=false
+Band_5G_2_support=false
+Band_6G_1_Support=false
+Band_6G_2_Support=false
+
 if echo "$SUPPORTstr" | grep -qw '2.4G'
-then Band_24G_Support=true
-else Band_24G_Support=false
-fi
+then Band_24G_Support=true ; fi
 
 if echo "$SUPPORTstr" | grep -qw '5G'
-then Band_5G_1_Support=true
-else Band_5G_1_Support=false
-fi
-
-if echo "$SUPPORTstr" | grep -qw '5G-2'
-then Band_5G_2_support=true
-else Band_5G_2_support=false
-fi
+then Band_5G_1_Support=true ; fi
 
 if echo "$SUPPORTstr" | grep -qw 'wifi6e'
-then Band_6G_1_Support=true
-else Band_6G_1_Support=false
-fi
+then Band_6G_1_Support=true ; fi
+
+##-------------------------------------##
+## Added by Martinski W. [2024-Jul-21] ##
+##-------------------------------------##
+_GetWiFiBandsSupported_()
+{
+   local wifiIFNameList  wifiIFName  wifiBandInfo  wifiBandName
+   local wifi5GHzCount=0  wifi6GHzCount=0
+
+   wifiIFNameList="$(nvram get wl_ifnames)"
+   if [ -z "$wifiIFNameList" ]
+   then
+       printf "\n**ERROR**: WiFi Interface List is *NOT* found.\n"
+       return 1
+   fi
+
+   for wifiIFName in $wifiIFNameList
+   do
+       wifiBandInfo="$(wl -i "$wifiIFName" status 2>/dev/null | grep 'Chanspec:')"
+       if [ -z "$wifiBandInfo" ]
+       then
+           printf "\n**ERROR**: Could not find 'Chanspec' for WiFi Interface [$wifiIFName].\n"
+           continue
+       fi
+       wifiBandName="$(echo "$wifiBandInfo" | awk -F ' ' '{print $2}')"
+
+       case "$wifiBandName" in
+           2.4GHz) Band_24G_Support=true
+                   ;;
+             5GHz) wifi5GHzCount="$((wifi5GHzCount + 1))"
+                   [ "$wifi5GHzCount" -eq 1 ] && Band_5G_1_Support=true
+                   [ "$wifi5GHzCount" -eq 2 ] && Band_5G_2_support=true
+                   ;;
+             6GHz) wifi6GHzCount="$((wifi6GHzCount + 1))"
+                   [ "$wifi6GHzCount" -eq 1 ] && Band_6G_1_Support=true
+                   [ "$wifi6GHzCount" -eq 2 ] && Band_6G_2_Support=true
+                   ;;
+                *) printf "\nWiFi Interface=[$wifiIFName], WiFi Band=[$wifiBandName]\n"
+                   ;;
+       esac
+   done
+}
+
+_GetWiFiBandsSupported_
 
 # $1 = print to syslog, $2 = message to print, $3 = log level
 Print_Output()
@@ -190,40 +230,59 @@ Get_Iface_Var(){
 	echo "$1" | sed -e 's/\.//g'
 }
 
-##-------------------------------------##
-## Added by Martinski W. [2022-Dec-23] ##
-##-------------------------------------##
+##----------------------------------------##
+## Modified by Martinski W. [2024-Jul-21] ##
+##----------------------------------------##
 GetIFaceUILabel()
 {
-	if [ $# -eq 0 ] || [ -z "$1" ] ; then echo "" ; fi
+    if [ $# -eq 0 ] || [ -z "$1" ] ; then echo "" ; return 1 ; fi
 
-	theUILabel="*UNKNOWN*"
-	case "$1" in
-		wl0)
-		    if [ "$ROUTER_MODEL" = "GT-AXE16000" ] && "$Band_5G_1_Support"
-		    then theUILabel="5GHz"
-		    elif "$Band_24G_Support" ; then theUILabel="2.4GHz"
-		    fi
-		    ;;
-		wl1)
-		    if [ "$ROUTER_MODEL" = "GT-AXE16000" ] && "$Band_5G_2_support"
-		    then theUILabel="5GHz2"
-		    elif "$Band_5G_1_Support" ; then theUILabel="5GHz"
-		    fi
-		    ;;
-		wl2)
-		    if [ "$ROUTER_MODEL" = "GT-AXE16000" ] || "$Band_6G_1_Support"
-		    then theUILabel="6GHz"
-		    elif "$Band_5G_2_support" ; then theUILabel="5GHz2"
-		    fi
-		    ;;
-		wl3)
-		    if [ "$ROUTER_MODEL" = "GT-AXE16000" ] && "$Band_24G_Support"
-		    then theUILabel="2.4GHz"
-		    fi
-		    ;;
-	esac
-	echo "$theUILabel"
+    theUILabel="*UNKNOWN*"
+    case "$1" in
+        wl0)
+            if { [ "$ROUTER_MODEL" = "GT-BE98" ] || \
+                 [ "$ROUTER_MODEL" = "GT-BE98_PRO" ] || \
+                 [ "$ROUTER_MODEL" = "GT-AXE16000" ] ; } && \
+               "$Band_5G_1_Support"
+            then theUILabel="5GHz"
+            elif "$Band_24G_Support"
+            then theUILabel="2.4GHz"
+            fi
+            ;;
+        wl1)
+            if [ "$ROUTER_MODEL" = "GT-BE98_PRO" ] && \
+               "$Band_6G_1_Support"
+            then 
+                theUILabel="6GHz"
+            elif { [ "$ROUTER_MODEL" = "GT-BE98" ] || \
+                   [ "$ROUTER_MODEL" = "GT-AXE16000" ] ; } && \
+                 "$Band_5G_2_support"
+            then theUILabel="5GHz2"
+            elif "$Band_5G_1_Support"
+            then theUILabel="5GHz"
+            fi
+            ;;
+        wl2)
+            if [ "$ROUTER_MODEL" = "GT-BE98_PRO" ] || \
+               "$Band_6G_2_Support"
+            then theUILabel="6GHz-2"
+            elif [ "$ROUTER_MODEL" = "GT-AXE16000" ] || \
+                 "$Band_6G_1_Support"
+            then theUILabel="6GHz"
+            elif "$Band_5G_2_support"
+            then theUILabel="5GHz2"
+            fi
+            ;;
+        wl3)
+            if { [ "$ROUTER_MODEL" = "GT-BE98" ] || \
+                 [ "$ROUTER_MODEL" = "GT-BE98_PRO" ] || \
+                 [ "$ROUTER_MODEL" = "GT-AXE16000" ] ; } && \
+               "$Band_24G_Support"
+            then theUILabel="2.4GHz"
+            fi
+            ;;
+    esac
+    echo "$theUILabel"
 }
 
 ##----------------------------------------##
