@@ -30,7 +30,7 @@ p{font-weight:bolder}thead.collapsible-jquery{color:#fff;padding:0;width:100%;bo
 <script>
 
 /**---------------------------------------------**/
-/** Last Modified by Martinski W. [2024-Jul-21] **/
+/** Last Modified by Martinski W. [2024-Jul-22] **/
 /**---------------------------------------------**/
 
 var custom_settings;
@@ -38,7 +38,7 @@ function LoadCustomSettings(){
 	custom_settings = <% get_custom_settings(); %>;
 	for(var prop in custom_settings){
 		if (Object.prototype.hasOwnProperty.call(custom_settings,prop)){
-			if(prop.indexOf('yazfi') != -1 && prop.indexOf('yazfi_version') == -1){
+			if (prop.indexOf('yazfi') !== -1 && prop.indexOf('yazfi_version') === -1){
 				eval('delete custom_settings.'+prop);
 			}
 		}
