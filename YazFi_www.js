@@ -1,5 +1,5 @@
 /**----------------------------------------**/
-/** Modified by Martinski W. [2024-Jul-21] **/
+/** Modified by Martinski W. [2024-Aug-19] **/
 /**----------------------------------------**/
 var clientswl01 = []; var sortnamewl01 = 'Hostname'; var sortdirwl01 = 'asc';
 var clientswl02 = []; var sortnamewl02 = 'Hostname'; var sortdirwl02 = 'asc';
@@ -302,8 +302,6 @@ const theGuestNet=
    }
 };
 
-var $j = jQuery.noConflict();
-
 /**-------------------------------------**/
 /** Added by Martinski W. [2023-Jan-29] **/
 /**-------------------------------------**/
@@ -317,7 +315,7 @@ function AddFailedField (formInput, errorMsg)
       { failedFieldFound=true; break; }
    }
    if (failedFieldFound) { return false; }
-   failedfields.push ([$j(formInput), errorMsg]);
+   failedfields.push ([$(formInput), errorMsg]);
    return true;
 }
 
@@ -372,38 +370,38 @@ function OptionsEnableDisable(forminput){
 
 	if(inputvalue == 'false'){
 		for(var index = 0; index < fieldnames.length; index++){
-			$j('input[name='+prefix+'_'+fieldnames[index]+']').addClass('disabled');
-			$j('input[name='+prefix+'_'+fieldnames[index]+']').prop('disabled',true);
+			$('input[name='+prefix+'_'+fieldnames[index]+']').addClass('disabled');
+			$('input[name='+prefix+'_'+fieldnames[index]+']').prop('disabled',true);
 		}
 		for(var index = 0; index < fieldnames2.length; index++){
-			$j('input[name='+prefix+'_'+fieldnames2[index]+']').prop('disabled',true);
+			$('input[name='+prefix+'_'+fieldnames2[index]+']').prop('disabled',true);
 		}
 	}
 	else if(inputvalue == 'true'){
 		for(var index = 0; index < fieldnames.length; index++){
 			if(fieldnames2[index] == 'dns2' || fieldnames2[index] == 'vpnclientnumber'){continue;}
-			$j('input[name='+prefix+'_'+fieldnames[index]+']').removeClass('disabled');
-			$j('input[name='+prefix+'_'+fieldnames[index]+']').prop('disabled',false);
+			$('input[name='+prefix+'_'+fieldnames[index]+']').removeClass('disabled');
+			$('input[name='+prefix+'_'+fieldnames[index]+']').prop('disabled',false);
 		}
 		for(var index = 0; index < fieldnames2.length; index++){
-			$j('input[name='+prefix+'_'+fieldnames2[index]+']').prop('disabled',false);
+			$('input[name='+prefix+'_'+fieldnames2[index]+']').prop('disabled',false);
 		}
 
 		if(eval('document.form.'+prefix+'_redirectalltovpn').value == 'true'){
-			$j('input[name='+prefix+'_vpnclientnumber]').removeClass('disabled');
-			$j('input[name='+prefix+'_vpnclientnumber]').prop('disabled',false);
+			$('input[name='+prefix+'_vpnclientnumber]').removeClass('disabled');
+			$('input[name='+prefix+'_vpnclientnumber]').prop('disabled',false);
 		}
 
 		if(eval('document.form.'+prefix+'_forcedns').value == 'false'){
-			$j('input[name='+prefix+'_dns2]').removeClass('disabled');
-			$j('input[name='+prefix+'_dns2]').prop('disabled',false);
+			$('input[name='+prefix+'_dns2]').removeClass('disabled');
+			$('input[name='+prefix+'_dns2]').prop('disabled',false);
 		}
 
 		if(eval('document.form.'+prefix+'_allowinternet').value == 'false'){
-			$j('input[name='+prefix+'_redirectalltovpn]').addClass('disabled');
-			$j('input[name='+prefix+'_redirectalltovpn]').prop('disabled',true);
-			$j('input[name='+prefix+'_vpnclientnumber]').addClass('disabled');
-			$j('input[name='+prefix+'_vpnclientnumber]').prop('disabled',true);
+			$('input[name='+prefix+'_redirectalltovpn]').addClass('disabled');
+			$('input[name='+prefix+'_redirectalltovpn]').prop('disabled',true);
+			$('input[name='+prefix+'_vpnclientnumber]').addClass('disabled');
+			$('input[name='+prefix+'_vpnclientnumber]').prop('disabled',true);
 			Validate_IP(eval('document.form.'+prefix+'_dns1'),'DNS');
 			Validate_IP(eval('document.form.'+prefix+'_dns2'),'DNS');
 		}
@@ -418,37 +416,37 @@ function SubOptionsEnableDisable(forminput,optiontype){
 	if(eval('document.form.'+prefix+'_enabled').value == 'true'){
 		if(inputvalue == 'false'){
 			if(optiontype == 'vpn'){
-				$j('input[name='+prefix+'_vpnclientnumber]').addClass('disabled');
-				$j('input[name='+prefix+'_vpnclientnumber]').prop('disabled',true);
+				$('input[name='+prefix+'_vpnclientnumber]').addClass('disabled');
+				$('input[name='+prefix+'_vpnclientnumber]').prop('disabled',true);
 			}
 			else if(optiontype == 'dns'){
-				$j('input[name='+prefix+'_dns2]').removeClass('disabled');
-				$j('input[name='+prefix+'_dns2]').prop('disabled',false);
+				$('input[name='+prefix+'_dns2]').removeClass('disabled');
+				$('input[name='+prefix+'_dns2]').prop('disabled',false);
 			}
 			else if(optiontype == 'allowinternet'){
-				$j('input[name='+prefix+'_redirectalltovpn]').addClass('disabled');
-				$j('input[name='+prefix+'_redirectalltovpn]').prop('disabled',true);
-				$j('input[name='+prefix+'_vpnclientnumber]').addClass('disabled');
-				$j('input[name='+prefix+'_vpnclientnumber]').prop('disabled',true);
+				$('input[name='+prefix+'_redirectalltovpn]').addClass('disabled');
+				$('input[name='+prefix+'_redirectalltovpn]').prop('disabled',true);
+				$('input[name='+prefix+'_vpnclientnumber]').addClass('disabled');
+				$('input[name='+prefix+'_vpnclientnumber]').prop('disabled',true);
 				Validate_IP(eval('document.form.'+prefix+'_dns1'),'DNS');
 				Validate_IP(eval('document.form.'+prefix+'_dns2'),'DNS');
 			}
 		}
 		else if(inputvalue == 'true'){
 			if(optiontype == 'vpn'){
-				$j('input[name='+prefix+'_vpnclientnumber]').removeClass('disabled');
-				$j('input[name='+prefix+'_vpnclientnumber]').prop('disabled',false);
+				$('input[name='+prefix+'_vpnclientnumber]').removeClass('disabled');
+				$('input[name='+prefix+'_vpnclientnumber]').prop('disabled',false);
 			}
 			else if(optiontype == 'dns'){
-				$j('input[name='+prefix+'_dns2]').val($j('input[name='+prefix+'_dns1]').val());
-				$j('input[name='+prefix+'_dns2]').addClass('disabled');
-				$j('input[name='+prefix+'_dns2]').prop('disabled',true);
+				$('input[name='+prefix+'_dns2]').val($('input[name='+prefix+'_dns1]').val());
+				$('input[name='+prefix+'_dns2]').addClass('disabled');
+				$('input[name='+prefix+'_dns2]').prop('disabled',true);
 			}
 			else if(optiontype == 'allowinternet'){
-				$j('input[name='+prefix+'_redirectalltovpn]').removeClass('disabled');
-				$j('input[name='+prefix+'_redirectalltovpn]').prop('disabled',false);
-				$j('input[name='+prefix+'_vpnclientnumber]').removeClass('disabled');
-				$j('input[name='+prefix+'_vpnclientnumber]').prop('disabled',false);
+				$('input[name='+prefix+'_redirectalltovpn]').removeClass('disabled');
+				$('input[name='+prefix+'_redirectalltovpn]').prop('disabled',false);
+				$('input[name='+prefix+'_vpnclientnumber]').removeClass('disabled');
+				$('input[name='+prefix+'_vpnclientnumber]').prop('disabled',false);
 				Validate_IP(eval('document.form.'+prefix+'_dns1'),'DNS');
 				Validate_IP(eval('document.form.'+prefix+'_dns2'),'DNS');
 			}
@@ -472,7 +470,7 @@ function Validate_IP(forminput,iptype){
 	if(/^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/.test(inputvalue)){
 		if(iptype != 'DNS'){
 			var fixedip = inputvalue.substring(0,inputvalue.lastIndexOf('.'))+'.0';
-			$j(forminput).val(fixedip);
+			$(forminput).val(fixedip);
 			if (/(^10\.)|(^172\.1[6-9]\.)|(^172\.2[0-9]\.)|(^172\.3[0-1]\.)|(^192\.168\.)/.test(fixedip)){
 				if(! jy_checkIPConflict('LAN',fixedip,'255.255.255.0',document.form.lan_ipaddr.value,document.form.lan_netmask.value).state){
 					matchfound=false;
@@ -487,56 +485,56 @@ function Validate_IP(forminput,iptype){
 					}
 					if(matchfound){
 						errorMsg='Conflict with another YazFi network';
-						$j(forminput).addClass('invalid');
+						$(forminput).addClass('invalid');
 						if (AddFailedField (forminput, errorMsg)) { forminput.focus(); }
-						$j(forminput).on('mouseover',function(){return overlib(errorMsg,0,0);});
-						$j(forminput)[0].onmouseout = nd;
+						$(forminput).on('mouseover',function(){return overlib(errorMsg,0,0);});
+						$(forminput)[0].onmouseout = nd;
 						return false;
 					}
 					else{
-						$j(forminput).removeClass('invalid');
-						$j(forminput).off('mouseover');
+						$(forminput).removeClass('invalid');
+						$(forminput).off('mouseover');
 						return true;
 					}
 				}
 				else{
 					errorMsg='LAN IP conflict';
-					$j(forminput).addClass('invalid');
+					$(forminput).addClass('invalid');
 					if (AddFailedField (forminput, errorMsg)) { forminput.focus(); }
-					$j(forminput).on('mouseover',function(){return overlib(errorMsg,0,0);});
-					$j(forminput)[0].onmouseout = nd;
+					$(forminput).on('mouseover',function(){return overlib(errorMsg,0,0);});
+					$(forminput)[0].onmouseout = nd;
 					return false;
 				}
 			}
 			else{
 				errorMsg='Not a private IP address';
-				$j(forminput).addClass('invalid');
+				$(forminput).addClass('invalid');
 				if (AddFailedField (forminput, errorMsg)) { forminput.focus(); }
-				$j(forminput).on('mouseover',function(){return overlib(errorMsg,0,0);});
-				$j(forminput)[0].onmouseout = nd;
+				$(forminput).on('mouseover',function(){return overlib(errorMsg,0,0);});
+				$(forminput)[0].onmouseout = nd;
 				return false;
 			}
 		}
 		else if (iptype == 'DNS' && ! /(^10\.)|(^172\.1[6-9]\.)|(^172\.2[0-9]\.)|(^172\.3[0-1]\.)|(^192\.168\.)/.test(inputvalue) && eval('document.form.'+prefix+'_allowinternet.value') == 'false'){
 			errorMsg='Allow internet disabled and non-private IP address used';
-			$j(forminput).addClass('invalid');
+			$(forminput).addClass('invalid');
 			if (AddFailedField (forminput, errorMsg)) { forminput.focus(); }
-			$j(forminput).on('mouseover',function(){return overlib(errorMsg,0,0);});
-			$j(forminput)[0].onmouseout = nd;
+			$(forminput).on('mouseover',function(){return overlib(errorMsg,0,0);});
+			$(forminput)[0].onmouseout = nd;
 			return false;
 		}
 		else{
-			$j(forminput).removeClass('invalid');
-			$j(forminput).off('mouseover');
+			$(forminput).removeClass('invalid');
+			$(forminput).off('mouseover');
 			return true;
 		}
 	}
 	else{
 		errorMsg='Invalid IP Address';
-		$j(forminput).addClass('invalid');
+		$(forminput).addClass('invalid');
 		if (AddFailedField (forminput, errorMsg)) { forminput.focus(); }
-		$j(forminput).on('mouseover',function(){return overlib(errorMsg,0,0);});
-		$j(forminput)[0].onmouseout = nd;
+		$(forminput).on('mouseover',function(){return overlib(errorMsg,0,0);});
+		$(forminput)[0].onmouseout = nd;
 		return false;
 	}
 }
@@ -550,61 +548,61 @@ function Validate_DHCP(forminput,dhcpType){
 
 	if(dhcpType == theDHCPStart.varType){
 		if(inputvalue >= eval('document.form.'+inputname.substring(0,inputname.indexOf('start'))+'end.value')*1){
-			$j(forminput).addClass('invalid');
+			$(forminput).addClass('invalid');
 			if (AddFailedField (forminput, theDHCPStart.errorMsg1)) { forminput.focus(); }
-			$j(forminput).on('mouseover',function(){return overlib(theDHCPStart.errorMsg1,0,0);});
-			$j(forminput)[0].onmouseout = nd;
+			$(forminput).on('mouseover',function(){return overlib(theDHCPStart.errorMsg1,0,0);});
+			$(forminput)[0].onmouseout = nd;
 			return false;
 		}
 		else{
 			if(inputvalue > theDHCPStart.maxVal || inputvalue < theDHCPStart.minVal){
-				$j(forminput).addClass('invalid');
+				$(forminput).addClass('invalid');
 				if (AddFailedField (forminput, theDHCPStart.errorMsg2())) { forminput.focus(); }
-				$j(forminput).on('mouseover',function(){return overlib(theDHCPStart.errorMsg2(),0,0);});
-				$j(forminput)[0].onmouseout = nd;
+				$(forminput).on('mouseover',function(){return overlib(theDHCPStart.errorMsg2(),0,0);});
+				$(forminput)[0].onmouseout = nd;
 				return false;
 			}
 			else{
-				$j(forminput).removeClass('invalid');
-				$j(forminput).off('mouseover');
+				$(forminput).removeClass('invalid');
+				$(forminput).off('mouseover');
 				return true;
 			}
 		}
 	}
 	else if(dhcpType == theDHCPEnd.varType){
 		if(inputvalue <= eval('document.form.'+inputname.substring(0,inputname.indexOf('end'))+'start.value')*1){
-			$j(forminput).addClass('invalid');
+			$(forminput).addClass('invalid');
 			if (AddFailedField (forminput, theDHCPEnd.errorMsg1)) { forminput.focus(); }
-			$j(forminput).on('mouseover',function(){return overlib(theDHCPEnd.errorMsg1,0,0);});
-			$j(forminput)[0].onmouseout = nd;
+			$(forminput).on('mouseover',function(){return overlib(theDHCPEnd.errorMsg1,0,0);});
+			$(forminput)[0].onmouseout = nd;
 			return false;
 		}
 		else{
 			if(inputvalue > theDHCPEnd.maxVal || inputvalue < theDHCPEnd.minVal){
-				$j(forminput).addClass('invalid');
+				$(forminput).addClass('invalid');
 				if (AddFailedField (forminput, theDHCPEnd.errorMsg2())) { forminput.focus(); }
-				$j(forminput).on('mouseover',function(){return overlib(theDHCPEnd.errorMsg2(),0,0);});
-				$j(forminput)[0].onmouseout = nd;
+				$(forminput).on('mouseover',function(){return overlib(theDHCPEnd.errorMsg2(),0,0);});
+				$(forminput)[0].onmouseout = nd;
 				return false;
 			}
 			else{
-				$j(forminput).removeClass('invalid');
-				$j(forminput).off('mouseover');
+				$(forminput).removeClass('invalid');
+				$(forminput).off('mouseover');
 				return true;
 			}
 		}
 	}
 	else if(dhcpType == theDHCPLeaseTime.varType){
 		if (!theDHCPLeaseTime.ValidateLeaseValue (forminput.value)){
-			$j(forminput).addClass('invalid');
+			$(forminput).addClass('invalid');
 			if (AddFailedField (forminput, theDHCPLeaseTime.errorMsg())) { forminput.focus(); }
-			$j(forminput).on('mouseover',function(){return overlib(theDHCPLeaseTime.errorMsg(),0,0);});
-			$j(forminput)[0].onmouseout = nd;
+			$(forminput).on('mouseover',function(){return overlib(theDHCPLeaseTime.errorMsg(),0,0);});
+			$(forminput)[0].onmouseout = nd;
 			return false;
 		}
 		else{
-			$j(forminput).removeClass('invalid');
-			$j(forminput).off('mouseover');
+			$(forminput).removeClass('invalid');
+			$(forminput).off('mouseover');
 			return true;
 		}
 	}
@@ -619,15 +617,15 @@ function Validate_VPNClientNo(forminput){
 	const errorMsg='Value not between 1 and 5';
 
 	if(inputvalue > 5 || inputvalue < 1){
-		$j(forminput).addClass('invalid');
+		$(forminput).addClass('invalid');
 		if (AddFailedField (forminput, errorMsg)) { forminput.focus(); }
-		$j(forminput).on('mouseover',function(){return overlib(errorMsg,0,0);});
-		$j(forminput)[0].onmouseout = nd;
+		$(forminput).on('mouseover',function(){return overlib(errorMsg,0,0);});
+		$(forminput)[0].onmouseout = nd;
 		return false;
 	}
 	else{
-		$j(forminput).removeClass('invalid');
-		$j(forminput).off('mouseover');
+		$(forminput).removeClass('invalid');
+		$(forminput).off('mouseover');
 		return true;
 	}
 }
@@ -696,7 +694,7 @@ function Validate_All(){
 /** Modified by Martinski W. [2024-Jul-21] **/
 /**----------------------------------------**/
 function get_conf_file(){
-	$j.ajax({
+	$.ajax({
 		url: '/ext/YazFi/config.htm',
 		dataType: 'text',
 		error: function(xhr){
@@ -731,14 +729,14 @@ function get_conf_file(){
 				ifaceUILabel=theGuestNet.IFaceUILabel (band_24GHz);
 				guestNetUILabel=`${ifaceUILabel} Guest Networks`;
 
-				$j('#table_config').append(BuildConfigTable(ifacePrefix, guestNetUILabel));
-				$j('#table_config').append('<tr><td style="padding:0px;height:10px;"></td></tr>');
+				$('#table_config').append(BuildConfigTable(ifacePrefix, guestNetUILabel));
+				$('#table_config').append('<tr><td style="padding:0px;height:10px;"></td></tr>');
 
 				ifacePrefix=theGuestNet.IFacePrefix (band_5GHz_1);
 				ifaceUILabel=theGuestNet.IFaceUILabel (band_5GHz_1);
 				guestNetUILabel=`${ifaceUILabel} Guest Networks`;
 
-				$j('#table_config').append(BuildConfigTable(ifacePrefix, guestNetUILabel));
+				$('#table_config').append(BuildConfigTable(ifacePrefix, guestNetUILabel));
 			}
 			else
 			{
@@ -752,7 +750,7 @@ function get_conf_file(){
 					if (showIFprefix) theIFprefixTag=` [${ifacePrefix}]`;
 					guestNetUILabel=`${ifaceUILabel}${theIFprefixTag} Guest Networks`;
 
-					$j('#table_config').append(BuildConfigTable(ifacePrefix, guestNetUILabel));
+					$('#table_config').append(BuildConfigTable(ifacePrefix, guestNetUILabel));
 					numOfBands = numOfBands+1;
 				}
 				if (wl_info.band5g_support)
@@ -763,8 +761,8 @@ function get_conf_file(){
 					if (showIFprefix) theIFprefixTag=` [${ifacePrefix}]`;
 					guestNetUILabel=`${ifaceUILabel}${theIFprefixTag} Guest Networks`;
 
-					$j('#table_config').append('<tr><td style="padding:0px;height:10px;"></td></tr>');
-					$j('#table_config').append(BuildConfigTable(ifacePrefix, guestNetUILabel));
+					$('#table_config').append('<tr><td style="padding:0px;height:10px;"></td></tr>');
+					$('#table_config').append(BuildConfigTable(ifacePrefix, guestNetUILabel));
 					numOfBands = numOfBands+1;
 				}
 				if (wl_info.band5g_2_support)
@@ -775,8 +773,8 @@ function get_conf_file(){
 					if (showIFprefix) theIFprefixTag=` [${ifacePrefix}]`;
 					guestNetUILabel=`${ifaceUILabel}${theIFprefixTag} Guest Networks`;
 
-					$j('#table_config').append('<tr><td style="padding:0px;height:10px;"></td></tr>');
-					$j('#table_config').append(BuildConfigTable(ifacePrefix, guestNetUILabel));
+					$('#table_config').append('<tr><td style="padding:0px;height:10px;"></td></tr>');
+					$('#table_config').append(BuildConfigTable(ifacePrefix, guestNetUILabel));
 					numOfBands = numOfBands+1;
 				}
 				if (typeof wl_info.band6g_support != 'undefined' &&
@@ -788,8 +786,8 @@ function get_conf_file(){
 					if (showIFprefix) theIFprefixTag=` [${ifacePrefix}]`;
 					guestNetUILabel=`${ifaceUILabel}${theIFprefixTag} Guest Networks`;
 
-					$j('#table_config').append('<tr><td style="padding:0px;height:10px;"></td></tr>');
-					$j('#table_config').append(BuildConfigTable(ifacePrefix, guestNetUILabel));
+					$('#table_config').append('<tr><td style="padding:0px;height:10px;"></td></tr>');
+					$('#table_config').append(BuildConfigTable(ifacePrefix, guestNetUILabel));
 					numOfBands = numOfBands+1;
 				}
 				if (typeof wl_info.band6g_2_support != 'undefined' &&
@@ -801,16 +799,16 @@ function get_conf_file(){
 					if (showIFprefix) theIFprefixTag=` [${ifacePrefix}]`;
 					guestNetUILabel=`${ifaceUILabel}${theIFprefixTag} Guest Networks`;
 
-					$j('#table_config').append('<tr><td style="padding:0px;height:10px;"></td></tr>');
-					$j('#table_config').append(BuildConfigTable(ifacePrefix, guestNetUILabel));
+					$('#table_config').append('<tr><td style="padding:0px;height:10px;"></td></tr>');
+					$('#table_config').append(BuildConfigTable(ifacePrefix, guestNetUILabel));
 					numOfBands = numOfBands+1;
 				}
 			}
 
-			$j('#table_config').append('<tr class="apply_gen" valign="top"><td style="background-color:rgb(77,89,93);border-top:0px;border-bottom:0px;height:5px;"></td></tr>');
+			$('#table_config').append('<tr class="apply_gen" valign="top"><td style="background-color:rgb(77,89,93);border-top:0px;border-bottom:0px;height:5px;"></td></tr>');
 			var buttonshtml = '<tr class="apply_gen" valign="top" height="35px"><td style="background-color:rgb(77,89,93);border-top:0px;">';
 			buttonshtml += '<input name="button" type="button" class="button_gen" onclick="SaveConfig();" value="Apply"/></td></tr>';
-			$j('#table_config').append(buttonshtml);
+			$('#table_config').append(buttonshtml);
 
 			for(var i = 0; i < settingsCount; i++)
 			{
@@ -828,24 +826,24 @@ function get_conf_file(){
 				if (!supportedBand || !supportedField) {continue;}
 
 				eval('document.form.yazfi_'+settingname).value = settingvalue;
-				if(settingname.indexOf('forcedns') != -1) SubOptionsEnableDisable($j('#yazfi_'+settingname.replace('_forcedns','')+'_fdns_'+settingvalue)[0],'dns');
-				if(settingname.indexOf('redirectalltovpn') != -1) SubOptionsEnableDisable($j('#yazfi_'+settingname.replace('_redirectalltovpn','')+'_redir_'+settingvalue)[0],'vpn');
-				if(settingname.indexOf('allowinternet') != -1) SubOptionsEnableDisable($j('#yazfi_'+settingname.replace('_allowinternet','')+'_allowinet_'+settingvalue)[0],'allowinternet');
-				if(settingname.indexOf('enabled') != -1) OptionsEnableDisable($j('#yazfi_'+settingname.replace('_enabled','')+'_en_'+settingvalue)[0]);
+				if(settingname.indexOf('forcedns') != -1) SubOptionsEnableDisable($('#yazfi_'+settingname.replace('_forcedns','')+'_fdns_'+settingvalue)[0],'dns');
+				if(settingname.indexOf('redirectalltovpn') != -1) SubOptionsEnableDisable($('#yazfi_'+settingname.replace('_redirectalltovpn','')+'_redir_'+settingvalue)[0],'vpn');
+				if(settingname.indexOf('allowinternet') != -1) SubOptionsEnableDisable($('#yazfi_'+settingname.replace('_allowinternet','')+'_allowinet_'+settingvalue)[0],'allowinternet');
+				if(settingname.indexOf('enabled') != -1) OptionsEnableDisable($('#yazfi_'+settingname.replace('_enabled','')+'_en_'+settingvalue)[0]);
 			}
 
-			if($j('#firmver').text()*1 < 386.1){
+			if($('#firmver').text()*1 < 386.1){
 				if(productid == 'RT-AX88U' || productid == 'RT-AX3000'){
-					$j('input[name*=clientisolation][value=false]').prop('checked',true);
-					$j('input[name*=clientisolation]').attr('disabled',true);
+					$('input[name*=clientisolation][value=false]').prop('checked',true);
+					$('input[name*=clientisolation]').attr('disabled',true);
 				}
 			}
 
 			for(var i = 0; i < numOfBands; i++){
 				for(var i2 = 1; i2 <= theGuestNet.numOfGNsPerBand; i2++){
 					if(eval('document.form.wl'+i+i2+'_bss_enabled').value == 0){
-						OptionsEnableDisable($j('#yazfi_wl'+i+i2+'_en_false')[0]);
-						$j('input[name=yazfi_wl'+i+i2+'_enabled]').prop('disabled',true);
+						OptionsEnableDisable($('#yazfi_wl'+i+i2+'_en_false')[0]);
+						$('input[name=yazfi_wl'+i+i2+'_enabled]').prop('disabled',true);
 					}
 				}
 			}
@@ -868,7 +866,7 @@ function get_connected_clients_file(){
 				}
 			}
 
-			$j('#table_connectedclients').empty();
+			$('#table_connectedclients').empty();
 
 			for(var i = 0; i < numOfBands; i++){
 				for(var i2 = 1; i2 <= theGuestNet.numOfGNsPerBand; i2++){
@@ -889,15 +887,15 @@ function get_connected_clients_file(){
 					});
 
 					if(eval('document.form.yazfi_'+YazFiInterface+'_enabled.value') == "true" && eval('document.form.'+YazFiInterface+'_bss_enabled.value') == 1){
-						$j('#table_connectedclients').append(BuildConnectedClientPlaceholderTable(YazFiInterface,eval('document.form.'+YazFiInterface+'_ssid.value')));
+						$('#table_connectedclients').append(BuildConnectedClientPlaceholderTable(YazFiInterface,eval('document.form.'+YazFiInterface+'_ssid.value')));
 
 						if(window['clients'+YazFiInterface].length > 0 && window['clients'+YazFiInterface][0].IPAddress != 'NOCLIENTS'){
 							SortTable('sortTable'+YazFiInterface,'clients'+YazFiInterface,eval('sortname'+YazFiInterface)+' '+eval('sortdir'+YazFiInterface).replace('desc','↑').replace('asc','↓').trim(),'sortname'+YazFiInterface,'sortdir'+YazFiInterface);
 						}
 						else{
-							$j('#sortTable'+YazFiInterface).css('height','30px');
-							$j('#sortTable'+YazFiInterface).css('overflow-y','hidden');
-							$j('#sortTable'+YazFiInterface).append(BuildConnectedClientsTableNoData('sortTable'+YazFiInterface));
+							$('#sortTable'+YazFiInterface).css('height','30px');
+							$('#sortTable'+YazFiInterface).css('overflow-y','hidden');
+							$('#sortTable'+YazFiInterface).append(BuildConnectedClientsTableNoData('sortTable'+YazFiInterface));
 						}
 					}
 				}
@@ -970,10 +968,10 @@ function SortTable(tableid,arrayid,sorttext,sortname,sortdir){
 		}
 	}
 
-	$j('#'+tableid).empty();
-	$j('#'+tableid).append(BuildConnectedClientsTable(tableid.replace('sortTable','')));
+	$('#'+tableid).empty();
+	$('#'+tableid).append(BuildConnectedClientsTable(tableid.replace('sortTable','')));
 
-	$j('#'+tableid).find('.sortable').each(function(index,element){
+	$('#'+tableid).find('.sortable').each(function(index,element){
 		if(element.innerHTML.replace(/ \(.*\)/,'').replace(' ','') == window[sortname]){
 			if(window[sortdir] == 'asc'){
 				element.innerHTML = element.innerHTML+' ↑';
@@ -1246,10 +1244,10 @@ function SetCurrentPage(){
 function ScriptUpdateLayout(){
 	var localver = GetVersionNumber('local');
 	var serverver = GetVersionNumber('server');
-	$j('#yazfi_version_local').text(localver);
+	$('#yazfi_version_local').text(localver);
 
 	if(localver != serverver && serverver != 'N/A'){
-		$j('#yazfi_version_server').text('Updated version available: '+serverver);
+		$('#yazfi_version_server').text('Updated version available: '+serverver);
 		showhide('btnChkUpdate',false);
 		showhide('yazfi_version_server',true);
 		showhide('btnDoUpdate',true);
@@ -1257,7 +1255,7 @@ function ScriptUpdateLayout(){
 }
 
 function update_status(){
-	$j.ajax({
+	$.ajax({
 		url: '/ext/YazFi/detect_update.js',
 		dataType: 'script',
 		error: function(xhr){
@@ -1271,12 +1269,12 @@ function update_status(){
 				document.getElementById('imgChkUpdate').style.display = 'none';
 				showhide('yazfi_version_server',true);
 				if(updatestatus != 'None'){
-					$j('#yazfi_version_server').text('Updated version available: '+updatestatus);
+					$('#yazfi_version_server').text('Updated version available: '+updatestatus);
 					showhide('btnChkUpdate',false);
 					showhide('btnDoUpdate',true);
 				}
 				else{
-					$j('#yazfi_version_server').text('No update available');
+					$('#yazfi_version_server').text('No update available');
 					showhide('btnChkUpdate',true);
 					showhide('btnDoUpdate',false);
 				}
@@ -1294,7 +1292,7 @@ function CheckUpdate(){
 }
 
 function DoUpdate(){
-	$j('#auto_refresh').prop('checked',false);
+	$('#auto_refresh').prop('checked',false);
 	clearTimeout(tout);
 	document.form.action_script.value = 'start_YazFidoupdate';
 	document.form.action_wait.value = 45;
@@ -1339,11 +1337,11 @@ function SetCookie(cookiename,cookievalue){
 
 function SaveConfig(){
 	if(Validate_All()){
-		$j('[name*=yazfi_]').prop('disabled',false);
-		document.getElementById('amng_custom').value = JSON.stringify($j('form').serializeObject());
+		$('[name*=yazfi_]').prop('disabled',false);
+		document.getElementById('amng_custom').value = JSON.stringify($('form').serializeObject());
 		document.form.action_script.value = 'start_YazFi';
 		document.form.action_wait.value = 45;
-		$j('#auto_refresh').prop('checked',false);
+		$('#auto_refresh').prop('checked',false);
 		clearTimeout(tout);
 		showLoading();
 		document.form.submit();
@@ -1354,31 +1352,31 @@ function SaveConfig(){
 }
 
 function AddEventHandlers(){
-	$j('.collapsible-jquery').off('click').on('click',function(){
-		$j(this).siblings().toggle('fast',function(){
-			if($j(this).css('display') == 'none'){
-				SetCookie($j(this).siblings()[0].id,'collapsed');
+	$('.collapsible-jquery').off('click').on('click',function(){
+		$(this).siblings().toggle('fast',function(){
+			if($(this).css('display') == 'none'){
+				SetCookie($(this).siblings()[0].id,'collapsed');
 			}
 			else{
-				SetCookie($j(this).siblings()[0].id,'expanded');
+				SetCookie($(this).siblings()[0].id,'expanded');
 			}
 		})
 	});
 
-	$j('.collapsible-jquery').each(function(index,element){
-		if(GetCookie($j(this)[0].id,'string') == 'collapsed'){
-			$j(this).siblings().toggle(false);
+	$('.collapsible-jquery').each(function(index,element){
+		if(GetCookie($(this)[0].id,'string') == 'collapsed'){
+			$(this).siblings().toggle(false);
 		}
 		else{
-			$j(this).siblings().toggle(true);
+			$(this).siblings().toggle(true);
 		}
 	});
 
-	$j('#auto_refresh').off('click').on('click',function(){ToggleRefresh();});
+	$('#auto_refresh').off('click').on('click',function(){ToggleRefresh();});
 }
 
 function ToggleRefresh(){
-	if($j('#auto_refresh').prop('checked') == true){
+	if($('#auto_refresh').prop('checked') == true){
 		document.formScriptActions.action_script.value='start_YazFiconnectedclients';
 		document.formScriptActions.submit();
 		tout = setTimeout(get_connected_clients_file,5000);
@@ -1388,10 +1386,10 @@ function ToggleRefresh(){
 	}
 }
 
-$j.fn.serializeObject = function(){
+$.fn.serializeObject = function(){
 	var o = custom_settings;
 	var a = this.serializeArray();
-	$j.each(a,function(){
+	$.each(a,function(){
 		if (o[this.name] !== undefined && this.name.indexOf('yazfi') != -1 && this.name.indexOf('version') == -1){
 			if (!o[this.name].push){
 				o[this.name] = [o[this.name]];
