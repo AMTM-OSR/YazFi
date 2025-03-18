@@ -3,7 +3,7 @@
 ![Shellcheck](https://github.com/jackyaz/YazFi/actions/workflows/shellcheck.yml/badge.svg)
 
 ## v4.4.5
-### Updated on 2024-Aug-19
+### Updated on 2025-Mar-16
 ## About
 Feature expansion of guest WiFi networks on AsusWRT-Merlin, including, but not limited to:
 
