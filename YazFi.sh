@@ -16,7 +16,7 @@
 ##    guest network DHCP script and for    ##
 ##         AsusWRT-Merlin firmware         ##
 #############################################
-# Last Modified: 2025-Mar-17
+# Last Modified: 2025-Mar-18
 #--------------------------------------------------
 
 ######       Shellcheck directives     ######
@@ -708,7 +708,8 @@ Firmware_Version_Check()
 
 ############################################################################
 
-Firmware_Version_WebUI(){
+Firmware_Version_WebUI()
+{
 	if nvram get rc_support | grep -qF "am_addons"; then
 		return 0
 	else
@@ -845,7 +846,8 @@ Update_Version()
 			read -r confirm
 			case "$confirm" in
 				y|Y)
-					if Firmware_Version_WebUI ; then
+					if Firmware_Version_WebUI
+					then
 						Update_File shared-jy.tar.gz
 						Update_File YazFi_www.asp
 					else
@@ -2972,14 +2974,16 @@ Check_Requirements(){
 	fi
 }
 
-Menu_Install(){
+Menu_Install()
+{
 	ScriptHeader
-	Print_Output true "Welcome to $SCRIPT_NAME $SCRIPT_VERSION, a script by JackYaz"
+	Print_Output true "Welcome to $SCRIPT_NAME $SCRIPT_VERSION, a script by JackYaz" "$PASS"
 	sleep 1
 
-	Print_Output true "Checking your router meets the requirements for $SCRIPT_NAME"
+	Print_Output true "Checking if your router meets the requirements for $SCRIPT_NAME" "$PASS"
 
-	if ! Check_Requirements; then
+	if ! Check_Requirements
+	then
 		Print_Output true "Requirements for $SCRIPT_NAME not met, please see above for the reason(s)" "$CRIT"
 		PressEnter
 		Clear_Lock
@@ -2990,7 +2994,8 @@ Menu_Install(){
 	Create_Dirs
 	Create_Symlinks
 
-	if Firmware_Version_WebUI ; then
+	if Firmware_Version_WebUI
+	then
 		Update_File shared-jy.tar.gz
 		Update_File YazFi_www.asp
 	else
@@ -3025,7 +3030,8 @@ Menu_Install(){
 	MainMenu
 }
 
-Menu_Edit(){
+Menu_Edit()
+{
 	texteditor=""
 	exitmenu="false"
 	if ! Conf_Exists; then
@@ -3036,7 +3042,8 @@ Menu_Edit(){
 	printf "2.    vi\\n"
 	printf "\\ne.    Exit to main menu\\n"
 
-	while true; do
+	while true
+	do
 		printf "\\n${BOLD}Choose an option:${CLEARFORMAT}  "
 		read -r editor
 		case "$editor" in
@@ -3064,7 +3071,8 @@ Menu_Edit(){
 	Clear_Lock
 }
 
-Menu_GuestConfig(){
+Menu_GuestConfig()
+{
 	exitmenu="false"
 	selectediface=""
 	changesmade="false"
@@ -3073,7 +3081,8 @@ Menu_GuestConfig(){
 
 	printf "\\n${BOLD}Please select a Guest Network:${CLEARFORMAT}\\n\\n"
 	COUNTER=1
-	for IFACE_MENU in $IFACELIST; do
+	for IFACE_MENU in $IFACELIST
+	do
 		if [ $((COUNTER % 4)) -eq 0 ]; then printf "\\n"; fi
 		IFACE_MENU_TEST="$(nvram get "${IFACE_MENU}_bss_enabled")"
 		if ! Validate_Number "" "$IFACE_MENU_TEST" silent; then IFACE_MENU_TEST=0; fi
@@ -3085,7 +3094,8 @@ Menu_GuestConfig(){
 
 	printf "\\ne.    Go back\\n"
 
-	while true; do
+	while true
+	do
 		selectediface=""
 		printf "\\n${BOLD}Choose an option:${CLEARFORMAT}  "
 		read -r selectedguest
