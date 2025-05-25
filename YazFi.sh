@@ -9,14 +9,14 @@
 ##        | || (_| | / / | |     | |       ##
 ##        |_| \__,_|/___||_|     |_|       ##
 ##                                         ##
-##    https://github.com/jackyaz/YazFi/    ##
+##    https://github.com/AMTM-OSR/YazFi/    ##
 ##                                         ##
 #############################################
 ##   Credit to @RMerlin for the original   ##
 ##    guest network DHCP script and for    ##
 ##         AsusWRT-Merlin firmware         ##
 #############################################
-# Last Modified: 2025-Mar-18
+# Last Modified: 2025-May-25
 #--------------------------------------------------
 
 ######       Shellcheck directives     ######
@@ -40,16 +40,16 @@
 ### Start of script variables ###
 readonly SCRIPT_NAME="YazFi"
 readonly SCRIPT_CONF="/jffs/addons/$SCRIPT_NAME.d/config"
-readonly YAZFI_VERSION="v4.4.5"
-readonly SCRIPT_VERSION="v4.4.5"
-SCRIPT_BRANCH="develop"
-SCRIPT_REPO="https://jackyaz.io/$SCRIPT_NAME/$SCRIPT_BRANCH"
+readonly YAZFI_VERSION="v4.4.6"
+readonly SCRIPT_VERSION="v4.4.6"
+SCRIPT_BRANCH="master"
+SCRIPT_REPO="https://raw.githubusercontent.com/AMTM-OSR/$SCRIPT_NAME/$SCRIPT_BRANCH"
 readonly SCRIPT_DIR="/jffs/addons/$SCRIPT_NAME.d"
 readonly USER_SCRIPT_DIR="$SCRIPT_DIR/userscripts.d"
 readonly SCRIPT_WEBPAGE_DIR="$(readlink -f /www/user)"
 readonly SCRIPT_WEB_DIR="$SCRIPT_WEBPAGE_DIR/$SCRIPT_NAME"
 readonly SHARED_DIR="/jffs/addons/shared-jy"
-readonly SHARED_REPO="https://jackyaz.io/shared-jy/master"
+readonly SHARED_REPO="https://raw.githubusercontent.com/AMTM-OSR/shared-jy/master"
 readonly SHARED_WEB_DIR="$SCRIPT_WEBPAGE_DIR/shared-jy"
 readonly TEMP_MENU_TREE="/tmp/menuTree.js"
 ### End of script variables ###
@@ -798,9 +798,9 @@ Update_Check()
 	echo 'var updatestatus = "InProgress";' > "$SCRIPT_WEB_DIR/detect_update.js"
 	doupdate="false"
 	localver="$(grep "SCRIPT_VERSION=" "/jffs/scripts/$SCRIPT_NAME" | grep -m1 -oE "$scriptVersRegExp")"
-	curl -fsL --retry 4 --retry-delay 5 "$SCRIPT_REPO/404/$SCRIPT_NAME.sh" | grep -qF "jackyaz" || \
+	curl -fsL --retry 4 --retry-delay 5 "$SCRIPT_REPO/$SCRIPT_NAME.sh" | grep -qF "jackyaz" || \
 	{ Print_Output true "404 error detected - stopping update" "$ERR"; return 1; }
-	serverver="$(curl -fsL --retry 4 --retry-delay 5 "$SCRIPT_REPO/version/$SCRIPT_NAME.sh" | grep "SCRIPT_VERSION=" | grep -m1 -oE "$scriptVersRegExp")"
+	serverver="$(curl -fsL --retry 4 --retry-delay 5 "$SCRIPT_REPO/$SCRIPT_NAME.sh" | grep "SCRIPT_VERSION=" | grep -m1 -oE "$scriptVersRegExp")"
 	if [ "$localver" != "$serverver" ]
 	then
 		doupdate="version"
@@ -808,7 +808,7 @@ Update_Check()
 		echo 'var updatestatus = "'"$serverver"'";'  > "$SCRIPT_WEB_DIR/detect_update.js"
 	else
 		localmd5="$(md5sum "/jffs/scripts/$SCRIPT_NAME" | awk '{print $1}')"
-		remotemd5="$(curl -fsL --retry 4 --retry-delay 5 "$SCRIPT_REPO/md5/$SCRIPT_NAME.sh" | md5sum | awk '{print $1}')"
+		remotemd5="$(curl -fsL --retry 4 --retry-delay 5 "$SCRIPT_REPO/$SCRIPT_NAME.sh" | md5sum | awk '{print $1}')"
 		if [ "$localmd5" != "$remotemd5" ]
 		then
 			doupdate="md5"
@@ -862,7 +862,7 @@ Update_Version()
 					##-------------------------------------##
 					Update_File "$SCRIPT_CONF"
 
-					Download_File "$SCRIPT_REPO/update/$SCRIPT_NAME.sh" "/jffs/scripts/$SCRIPT_NAME" && \
+					Download_File "$SCRIPT_REPO/$SCRIPT_NAME.sh" "/jffs/scripts/$SCRIPT_NAME" && \
 					Print_Output true "$SCRIPT_NAME successfully updated - restarting firewall to apply update" "$PASS"
 					chmod 0755 "/jffs/scripts/$SCRIPT_NAME"
 					Set_Version_Custom_Settings local "$serverver"
@@ -887,7 +887,7 @@ Update_Version()
 
 	if [ "$1" = "force" ]
 	then
-		serverver="$(curl -fsL --retry 4 --retry-delay 5 "$SCRIPT_REPO/version/$SCRIPT_NAME.sh" | grep "SCRIPT_VERSION=" | grep -m1 -oE "$scriptVersRegExp")"
+		serverver="$(curl -fsL --retry 4 --retry-delay 5 "$SCRIPT_REPO/$SCRIPT_NAME.sh" | grep "SCRIPT_VERSION=" | grep -m1 -oE "$scriptVersRegExp")"
 		Print_Output true "Downloading latest version ($serverver) of $SCRIPT_NAME" "$PASS"
 		if Firmware_Version_WebUI
 		then
@@ -904,7 +904,7 @@ Update_Version()
 		##-------------------------------------##
 		Update_File "$SCRIPT_CONF"
 
-		Download_File "$SCRIPT_REPO/update/$SCRIPT_NAME.sh" "/jffs/scripts/$SCRIPT_NAME" && \
+		Download_File "$SCRIPT_REPO/$SCRIPT_NAME.sh" "/jffs/scripts/$SCRIPT_NAME" && \
         Print_Output true "$SCRIPT_NAME successfully updated - restarting firewall to apply update" "$PASS"
 		chmod 0755 "/jffs/scripts/$SCRIPT_NAME"
 		Set_Version_Custom_Settings local "$serverver"
@@ -933,19 +933,19 @@ Update_File()
 		tmpfile="/tmp/$1"
 		if [ -f "$SCRIPT_DIR/$1" ]
 		then
-			Download_File "$SCRIPT_REPO/files/$1" "$tmpfile"
+			Download_File "$SCRIPT_REPO/$1" "$tmpfile"
 			if ! diff -q "$tmpfile" "$SCRIPT_DIR/$1" >/dev/null 2>&1
 			then
 				Get_WebUI_Page "$SCRIPT_DIR/$1"
 				sed -i "\\~$MyWebPage~d" "$TEMP_MENU_TREE"
 				rm -f "$SCRIPT_WEBPAGE_DIR/$MyWebPage" 2>/dev/null
-				Download_File "$SCRIPT_REPO/files/$1" "$SCRIPT_DIR/$1"
+				Download_File "$SCRIPT_REPO/$1" "$SCRIPT_DIR/$1"
 				Print_Output true "New version of $1 downloaded" "$PASS"
 				Mount_WebUI
 			fi
 			rm -f "$tmpfile"
 		else
-			Download_File "$SCRIPT_REPO/files/$1" "$SCRIPT_DIR/$1"
+			Download_File "$SCRIPT_REPO/$1" "$SCRIPT_DIR/$1"
 			Print_Output true "New version of $1 downloaded" "$PASS"
 			Mount_WebUI
 		fi
@@ -973,10 +973,10 @@ Update_File()
 	elif [ "$1" = "README.md" ] || [ "$1" = "LICENSE" ]
 	then
 		tmpfile="/tmp/$1"
-		Download_File "$SCRIPT_REPO/files/$1" "$tmpfile"
+		Download_File "$SCRIPT_REPO/$1" "$tmpfile"
 		if ! diff -q "$tmpfile" "$SCRIPT_DIR/$1" >/dev/null 2>&1
 		then
-			Download_File "$SCRIPT_REPO/files/$1" "$SCRIPT_DIR/$1"
+			Download_File "$SCRIPT_REPO/$1" "$SCRIPT_DIR/$1"
 		fi
 		rm -f "$tmpfile"
 	elif [ "$1" = "$SCRIPT_CONF" ]
@@ -1713,7 +1713,7 @@ _CheckFor_WebGUI_Page_()
 Conf_Download()
 {
 	mkdir -p "/jffs/addons/$SCRIPT_NAME.d"
-	curl -fsL --retry 4 --retry-delay 5 "$SCRIPT_REPO/files/$SCRIPT_NAME.config.example" -o "$1"
+	curl -fsL --retry 4 --retry-delay 5 "$SCRIPT_REPO/$SCRIPT_NAME.config.example" -o "$1"
 	chmod 0644 "$1"
 	dos2unix "$1"
 	sleep 1
@@ -1726,7 +1726,7 @@ Conf_Download()
 Conf_ADD_Download()
 {
 	config_ADD="${1}.ADD.txt"
-	curl -fsL --retry 4 --retry-delay 5 "$SCRIPT_REPO/files/${SCRIPT_NAME}.config.ADD.txt" -o "$config_ADD"
+	curl -fsL --retry 4 --retry-delay 5 "$SCRIPT_REPO/${SCRIPT_NAME}.config.ADD.txt" -o "$config_ADD"
 	chmod 0644 "$config_ADD"
 	dos2unix "$config_ADD"
 	[ -f "$config_ADD" ] && return 0 || return 1
@@ -2806,7 +2806,8 @@ ScriptHeader()
 	printf "${BOLD}##                                         ##${CLEARFORMAT}\\n"
 	printf "${BOLD}##         %9s on %-16s   ##${CLEARFORMAT}\n" "$SCRIPT_VERSION" "$ROUTER_MODEL"
 	printf "${BOLD}##                                         ##${CLEARFORMAT}\\n"
-	printf "${BOLD}##    https://github.com/jackyaz/YazFi/    ##${CLEARFORMAT}\\n"
+	printf "${BOLD}##    https://github.com/AMTM-OSR/YazFi/   ##${CLEARFORMAT}\\n"
+	printf "${BOLD}##Forked from: https://github.com/jackyaz/YazFi/##${CLEARFORMAT}\\n"
 	printf "${BOLD}##                                         ##${CLEARFORMAT}\\n"
 	printf "${BOLD}#############################################${CLEARFORMAT}\\n"
 	printf "\n"
@@ -3025,7 +3026,7 @@ Menu_Install()
 	Print_Output false "Alternatively, use $SCRIPT_NAME's menu via amtm (if installed), with /jffs/scripts/$SCRIPT_NAME or simply $SCRIPT_NAME"
 	Clear_Lock
 	PressEnter
-	Download_File "$SCRIPT_REPO/install-success/LICENSE" "$SCRIPT_DIR/LICENSE"
+	Download_File "$SCRIPT_REPO/LICENSE" "$SCRIPT_DIR/LICENSE"
 	ScriptHeader
 	MainMenu
 }
@@ -3623,7 +3624,7 @@ Help & Support
   https://www.snbforums.com/forums/asuswrt-merlin-addons.60/?prefix_id=13
 
 Source code
-  https://github.com/jackyaz/$SCRIPT_NAME
+  https://github.com/AMTM-OSR/$SCRIPT_NAME
 EOF
 	printf "\n"
 }
@@ -3895,13 +3896,13 @@ case "$1" in
 	;;
 	develop)
 		SCRIPT_BRANCH="develop"
-		SCRIPT_REPO="https://jackyaz.io/$SCRIPT_NAME/$SCRIPT_BRANCH"
+		SCRIPT_REPO="https://raw.githubusercontent.com/AMTM-OSR/$SCRIPT_NAME/$SCRIPT_BRANCH"
 		Update_Version force
 		exit 0
 	;;
 	stable)
 		SCRIPT_BRANCH="master"
-		SCRIPT_REPO="https://jackyaz.io/$SCRIPT_NAME/$SCRIPT_BRANCH"
+		SCRIPT_REPO="https://raw.githubusercontent.com/AMTM-OSR/$SCRIPT_NAME/$SCRIPT_BRANCH"
 		Update_Version force
 		exit 0
 	;;

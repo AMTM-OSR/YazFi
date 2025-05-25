@@ -1,9 +1,7 @@
 # YazFi - enhanced AsusWRT-Merlin Guest WiFi Networks
-[![Codacy Badge](https://api.codacy.com/project/badge/Grade/a2cf9bdec17b4b6f9b6e113f802be694)](https://app.codacy.com/app/jackyaz/YazFi?utm_source=github.com&utm_medium=referral&utm_content=jackyaz/YazFi&utm_campaign=Badge_Grade_Dashboard)
-![Shellcheck](https://github.com/jackyaz/YazFi/actions/workflows/shellcheck.yml/badge.svg)
 
-## v4.4.5
-### Updated on 2025-Mar-16
+## v4.4.6
+### Updated on 2025-May-25
 ## About
 Feature expansion of guest WiFi networks on AsusWRT-Merlin, including, but not limited to:
 
@@ -15,12 +13,6 @@ Feature expansion of guest WiFi networks on AsusWRT-Merlin, including, but not l
 *   Extend DNS Filter to guest networks
 
 YazFi is free to use under the [GNU General Public License version 3](https://opensource.org/licenses/GPL-3.0) (GPL 3.0).
-
-### Supporting development
-Love the script and want to support future development? Any and all donations gratefully received!
-
-| [![paypal](https://www.paypalobjects.com/en_GB/i/btn/btn_donate_LG.gif)](https://www.paypal.com/donate/?hosted_button_id=47UTYVRBDKSTL) <br /><br /> [**PayPal donation**](https://www.paypal.com/donate/?hosted_button_id=47UTYVRBDKSTL) | [![paypal](https://puu.sh/IAhtp/3788f3a473.png)](https://www.paypal.com/donate/?hosted_button_id=47UTYVRBDKSTL) |
-| :----: | --- |
 
 ## Supported firmware versions
 ### Core YazFi features
@@ -35,7 +27,7 @@ You must be running firmware Merlin 384.15/384.13_4 or Fork 43E5 (or later) [Asu
 Using your preferred SSH client/terminal, copy and paste the following command, then press Enter:
 
 ```sh
-/usr/sbin/curl -fsL --retry 3 "https://jackyaz.io/YazFi/master/install/YazFi.sh" -o /jffs/scripts/YazFi && chmod 0755 /jffs/scripts/YazFi && /jffs/scripts/YazFi install
+/usr/sbin/curl -fsL --retry 3 "https://raw.githubusercontent.com/jackyaz/YazFi/master/YazFi.sh" -o /jffs/scripts/YazFi && chmod 0755 /jffs/scripts/YazFi && /jffs/scripts/YazFi install
 ```
 
 Please then follow instructions shown on-screen. An explanation of the settings is provided in the [FAQs](#explanation-of-yazfi-settings)
