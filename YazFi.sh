@@ -9,14 +9,14 @@
 ##        | || (_| | / / | |     | |       ##
 ##        |_| \__,_|/___||_|     |_|       ##
 ##                                         ##
-##    https://github.com/AMTM-OSR/YazFi/    ##
+##    https://github.com/AMTM-OSR/YazFi    ##
 ##                                         ##
 #############################################
 ##   Credit to @RMerlin for the original   ##
 ##    guest network DHCP script and for    ##
 ##         AsusWRT-Merlin firmware         ##
 #############################################
-# Last Modified: 2025-May-25
+# Last Modified: 2025-May-26
 #--------------------------------------------------
 
 ######       Shellcheck directives     ######
@@ -2795,21 +2795,21 @@ ScriptHeader()
 {
 	clear
 	printf "\n"
-	printf "${BOLD}#############################################${CLEARFORMAT}\\n"
-	printf "${BOLD}##                                         ##${CLEARFORMAT}\\n"
-	printf "${BOLD}##     __     __          ______  _        ##${CLEARFORMAT}\\n"
-	printf "${BOLD}##     \ \   / /         |  ____|(_)       ##${CLEARFORMAT}\\n"
-	printf "${BOLD}##      \ \_/ /__ _  ____| |__    _        ##${CLEARFORMAT}\\n"
-	printf "${BOLD}##       \   // _  ||_  /|  __|  | |       ##${CLEARFORMAT}\\n"
-	printf "${BOLD}##        | || (_| | / / | |     | |       ##${CLEARFORMAT}\\n"
-	printf "${BOLD}##        |_| \__,_|/___||_|     |_|       ##${CLEARFORMAT}\\n"
-	printf "${BOLD}##                                         ##${CLEARFORMAT}\\n"
-	printf "${BOLD}##         %9s on %-16s   ##${CLEARFORMAT}\n" "$SCRIPT_VERSION" "$ROUTER_MODEL"
-	printf "${BOLD}##                                         ##${CLEARFORMAT}\\n"
-	printf "${BOLD}##    https://github.com/AMTM-OSR/YazFi/   ##${CLEARFORMAT}\\n"
-	printf "${BOLD}##Forked from: https://github.com/jackyaz/YazFi/##${CLEARFORMAT}\\n"
-	printf "${BOLD}##                                         ##${CLEARFORMAT}\\n"
-	printf "${BOLD}#############################################${CLEARFORMAT}\\n"
+	printf "${BOLD}###################################################${CLEARFORMAT}\\n"
+	printf "${BOLD}##                                               ##${CLEARFORMAT}\\n"
+	printf "${BOLD}##        __     __          ______  _           ##${CLEARFORMAT}\\n"
+	printf "${BOLD}##        \ \   / /         |  ____|(_)          ##${CLEARFORMAT}\\n"
+	printf "${BOLD}##         \ \_/ /__ _  ____| |__    _           ##${CLEARFORMAT}\\n"
+	printf "${BOLD}##          \   // _  ||_  /|  __|  | |          ##${CLEARFORMAT}\\n"
+	printf "${BOLD}##           | || (_| | / / | |     | |          ##${CLEARFORMAT}\\n"
+	printf "${BOLD}##           |_| \__,_|/___||_|     |_|          ##${CLEARFORMAT}\\n"
+	printf "${BOLD}##                                               ##${CLEARFORMAT}\\n"
+	printf "${BOLD}##          %9s on %-18s      ##${CLEARFORMAT}\n" "$SCRIPT_VERSION" "$ROUTER_MODEL"
+	printf "${BOLD}##                                               ##${CLEARFORMAT}\\n"
+	printf "${BOLD}##       https://github.com/AMTM-OSR/YazFi       ##${CLEARFORMAT}\\n"
+	printf "${BOLD}## Forked from: https://github.com/jackyaz/YazFi ##${CLEARFORMAT}\\n"
+	printf "${BOLD}##                                               ##${CLEARFORMAT}\\n"
+	printf "${BOLD}###################################################${CLEARFORMAT}\\n"
 	printf "\n"
 }
 
