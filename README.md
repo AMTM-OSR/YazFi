@@ -1,7 +1,7 @@
 # YazFi - enhanced AsusWRT-Merlin Guest WiFi Networks
 
-## v4.4.6
-### Updated on 2025-May-25
+## v4.4.7
+### Updated on 2025-Jun-18
 ## About
 Feature expansion of guest WiFi networks on AsusWRT-Merlin, including, but not limited to:
 
@@ -19,9 +19,12 @@ YazFi is free to use under the [GNU General Public License version 3](https://op
 You must be running firmware no older than:
 *   [Asuswrt-Merlin](https://asuswrt.lostrealm.ca/) 384.5
 *   [john9527 fork](https://www.snbforums.com/threads/fork-asuswrt-merlin-374-43-lts-releases-v37ea.18914/) 374.43_32D6j9527
+*   NOTE: YazFi is NOT supported on latest F/W 3006.102.* versions
 
 ### WebUI page for YazFi
 You must be running firmware Merlin 384.15/384.13_4 or Fork 43E5 (or later) [Asuswrt-Merlin](https://asuswrt.lostrealm.ca/)
+
+* NOTE: YazFi is NOT supported on latest F/W 3006.102.* versions
 
 ## Installation
 Using your preferred SSH client/terminal, copy and paste the following command, then press Enter:
