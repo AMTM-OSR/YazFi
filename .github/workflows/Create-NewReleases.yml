@@ -35,7 +35,7 @@ jobs:
       - name: Determine Version Tag from Script.sh
         id: nextver
         run: |
-          VERSION=$(grep -E '^readonly[[:space:]]+SCRIPT_VERSION=' YazFI.sh \
+          VERSION=$(grep -E '^readonly[[:space:]]+SCRIPT_VERSION=' YazFi.sh \
                    | cut -d '=' -f2 \
                    | cut -d '#' -f1 \
                    | tr -d '"[:space:]')
@@ -70,12 +70,12 @@ jobs:
       # 4--- Update SCRIPT_BRANCH only
       - name: Update Script.sh Script Branch
         run: |
-          sed -i '/^SCRIPT_BRANCH=.*$/s/.*/SCRIPT_BRANCH="master"/' YazFI.sh
+          sed -i '/^SCRIPT_BRANCH=.*$/s/.*/SCRIPT_BRANCH="master"/' YazFi.sh
 
       # 5--- Commit branch change only if the file was actually modified
       - name: Commit branch change
         run: |
-          git add YazFI.sh
+          git add YazFi.sh
           if ! git diff --cached --quiet; then
             git commit -m 'Set SCRIPT_BRANCH to "master" after merge'
             git push origin master
