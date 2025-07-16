@@ -17,7 +17,7 @@
 ##       Guest Network DHCP script and for       ##
 ##            AsusWRT-Merlin firmware            ##
 ###################################################
-# Last Modified: 2025-Jun-18
+# Last Modified: 2025-Jul-15
 #--------------------------------------------------
 
 ######       Shellcheck directives     ######
@@ -41,10 +41,10 @@
 ### Start of script variables ###
 readonly SCRIPT_NAME="YazFi"
 readonly SCRIPT_CONF="/jffs/addons/$SCRIPT_NAME.d/config"
-readonly YAZFI_VERSION="v4.4.7"
-readonly SCRIPT_VERSION="v4.4.7"
-readonly SCRIPT_VERSTAG="25061807"
-SCRIPT_BRANCH="master"
+readonly YAZFI_VERSION="v4.4.8"
+readonly SCRIPT_VERSION="v4.4.8"
+readonly SCRIPT_VERSTAG="25071523"
+SCRIPT_BRANCH="develop"
 SCRIPT_REPO="https://raw.githubusercontent.com/AMTM-OSR/$SCRIPT_NAME/$SCRIPT_BRANCH"
 readonly SCRIPT_DIR="/jffs/addons/$SCRIPT_NAME.d"
 readonly USER_SCRIPT_DIR="$SCRIPT_DIR/userscripts.d"
@@ -64,6 +64,8 @@ readonly PASS="\\e[32m"
 readonly BOLD="\\e[1m"
 readonly SETTING="${BOLD}\\e[36m"
 readonly CLEARFORMAT="\\e[0m"
+readonly CLRct="\e[0m"
+readonly MGNTct="\e[1;35m"
 ### End of output format variables ###
 
 ### Start of router environment variables ###
@@ -3828,9 +3830,9 @@ Menu_Uninstall()
 	flock -x "$FD"
 	Get_WebUI_Page "$SCRIPT_DIR/YazFi_www.asp"
 	if [ -n "$MyWebPage" ] && \
-       [ "$MyWebPage" != "NONE" ] && \
-       [ -f "$TEMP_MENU_TREE" ]
-    then
+	   [ "$MyWebPage" != "NONE" ] && \
+	   [ -f "$TEMP_MENU_TREE" ]
+	then
 		sed -i "\\~$MyWebPage~d" "$TEMP_MENU_TREE"
 		rm -f "$SCRIPT_WEBPAGE_DIR/$MyWebPage"
 		rm -f "$SCRIPT_WEBPAGE_DIR/$(echo "$MyWebPage" | cut -f1 -d'.').title"
@@ -3841,7 +3843,7 @@ Menu_Uninstall()
 	rm -f "$SCRIPT_DIR/YazFi_www.asp" 2>/dev/null
 
 	while true
-    do
+	do
 		printf "\n${BOLD}Do you want to delete %s configuration file(s)? (y/n)${CLEARFORMAT}  " "$SCRIPT_NAME"
 		read -r confirm
 		case "$confirm" in
@@ -3870,8 +3872,8 @@ Menu_Uninstall()
 ##----------------------------------------##
 Show_About()
 {
+	printf "About ${MGNTct}${SCRIPT_VERS_INFO}${CLRct}\n"
 	cat <<EOF
-About $SCRIPT_VERS_INFO
   $SCRIPT_NAME is a Feature expansion of Guest WiFi networks on
 AsusWRT-Merlin, including SSID -> VPN, separate subnets per guest
 network, pinhole access to LAN resources (e.g. DNS) and more!
@@ -3895,8 +3897,8 @@ EOF
 ##----------------------------------------##
 Show_Help()
 {
+	printf "HELP ${MGNTct}${SCRIPT_VERS_INFO}${CLRct}\n"
 	cat <<EOF
-HELP $SCRIPT_VERS_INFO
 Available commands:
   $SCRIPT_NAME about            explains functionality
   $SCRIPT_NAME update           checks for updates
@@ -3911,8 +3913,8 @@ Available commands:
   $SCRIPT_NAME check            check if $SCRIPT_NAME configuration is still in effect and re-apply if not
   $SCRIPT_NAME userscripts      run userscripts (if any have been created)
   $SCRIPT_NAME rejectlogging    toggle whether rejected packets are logged to syslog
-  $SCRIPT_NAME develop          switch to development branch
-  $SCRIPT_NAME stable           switch to stable branch
+  $SCRIPT_NAME develop          switch to development branch version
+  $SCRIPT_NAME stable           switch to stable/production branch version
 EOF
 	printf "\n"
 }
@@ -3929,13 +3931,19 @@ else SCRIPT_VERS_INFO="$scriptVERINFO"
 fi
 
 ##----------------------------------------##
-## Modified by Martinski W. [2025-Jun-18] ##
+## Modified by Martinski W. [2025-Jul-15] ##
 ##----------------------------------------##
 if [ $# -eq 0 ] || [ -z "$1" ]
 then
 	if ! _Firmware_Support_Check_
 	then
-		printf "${ERR}Exiting...${CLEARFORMAT}\n"
+		if [ -d "$SCRIPT_DIR" ]
+		then
+		    printf "${SETTING}To uninstall use this command:  ${CLRct}"
+		    printf "${MGNTct}/jffs/scripts/$SCRIPT_NAME uninstall${CLRct}\n\n"
+		fi
+		PressEnter
+		printf "\n${ERR}Exiting...${CLRct}\n"
 		Clear_Lock
 		exit 1
 	fi
