@@ -1,0 +1,106 @@
+name: Auto Tag and Release on PR Merge
+
+on:
+  pull_request:
+    branches:
+      - 'master'
+    types:
+      - closed
+
+permissions:
+  contents: write
+
+jobs:
+  tag-and-release:
+    # Run only when the PR came from the develop branch and was merged
+    if: github.event.pull_request.merged == true && github.head_ref == 'develop'
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1--- Check out master so we tag the exact merge commit
+      - name: Checkout source code
+        uses: actions/checkout@v4.2.2
+        with:
+          fetch-depth: 0
+          ref: 'master'
+          ssh-key: ${{ secrets.DEPLOY_KEY }}
+
+      # 2--- Configure author details for any subsequent commits
+      - name: Configure Git
+        run: |
+          git config --local user.email "github-actions@github.com"
+          git config --local user.name "GitHub Actions"
+
+      # 3--- Identify the version in Script.sh and expose it as an output
+      - name: Determine Version Tag from Script.sh
+        id: nextver
+        run: |
+          VERSION=$(grep -E '^readonly[[:space:]]+SCRIPT_VERSION=' YazFi.sh \
+                   | cut -d '=' -f2 \
+                   | cut -d '#' -f1 \
+                   | tr -d '"[:space:]')
+
+          # Fallback to previous logic only if unable to read from script
+          if [[ -z "$VERSION" ]]; then
+            CURRENT_TAG=$(git tag --sort=-v:refname | head -n 1)
+            [[ $CURRENT_TAG == '' ]] && CURRENT_TAG='v0.1.0'
+            MAJOR=$(echo $CURRENT_TAG | cut -d '.' -f 1 | cut -c 2-)
+            MINOR=$(echo $CURRENT_TAG | cut -d '.' -f 2)
+            PATCH=$(echo $CURRENT_TAG | cut -d '.' -f 3)
+            if [[ $PATCH -eq 9 ]]; then
+              PATCH=0
+              if [[ $MINOR -eq 9 ]]; then
+                MINOR=0
+                MAJOR=$((MAJOR+1))
+              else
+                MINOR=$((MINOR+1))
+              fi
+            else
+              PATCH=$((PATCH+1))
+            fi
+            VERSION="v$MAJOR.$MINOR.$PATCH"
+          fi
+
+          # Ensure the tag starts with "v"
+          [[ $VERSION != v* ]] && VERSION="v$VERSION"
+
+          echo "Using version tag $VERSION"
+          echo "tag=$VERSION" >> "$GITHUB_OUTPUT"
+
+      # 4--- Update SCRIPT_BRANCH only
+      - name: Update Script.sh Script Branch
+        run: |
+          sed -i '/^SCRIPT_BRANCH=.*$/s/.*/SCRIPT_BRANCH="master"/' YazFi.sh
+
+      # 5--- Commit branch change only if the file was actually modified
+      - name: Commit branch change
+        run: |
+          git add YazFi.sh
+          if ! git diff --cached --quiet; then
+            git commit -m 'Set SCRIPT_BRANCH to "master" after merge'
+            git push origin master
+          else
+            echo "No branch change needed"
+          fi
+
+      # 6--- Create and push the tag taken from Script.sh
+      - name: Create and Push Tag
+        run: |
+          TAG="${{ steps.nextver.outputs.tag }}"
+          # Skip if the tag already exists (avoids fatal push error)
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists – skipping creation"
+          else
+            git tag "$TAG"
+            git push origin "$TAG"
+          fi
+
+      # 7--- Publish a GitHub Release with auto-generated notes
+      - name: Create Release with Automated Release Notes
+        uses: softprops/action-gh-release@v2.3.2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag_name: ${{ steps.nextver.outputs.tag }}
+          name: "Release ${{ steps.nextver.outputs.tag }}"
+          prerelease: false
+          generate_release_notes: true
