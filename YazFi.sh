@@ -17,7 +17,7 @@
 ##       Guest Network DHCP script and for       ##
 ##            AsusWRT-Merlin firmware            ##
 ###################################################
-# Last Modified: 2025-Jul-15
+# Last Modified: 2025-Jul-18
 #--------------------------------------------------
 
 ######       Shellcheck directives     ######
@@ -43,7 +43,7 @@ readonly SCRIPT_NAME="YazFi"
 readonly SCRIPT_CONF="/jffs/addons/$SCRIPT_NAME.d/config"
 readonly YAZFI_VERSION="v4.4.8"
 readonly SCRIPT_VERSION="v4.4.8"
-readonly SCRIPT_VERSTAG="25071523"
+readonly SCRIPT_VERSTAG="25071823"
 SCRIPT_BRANCH="develop"
 SCRIPT_REPO="https://raw.githubusercontent.com/AMTM-OSR/$SCRIPT_NAME/$SCRIPT_BRANCH"
 readonly SCRIPT_DIR="/jffs/addons/$SCRIPT_NAME.d"
@@ -77,7 +77,8 @@ readonly scriptVersRegExp="v[0-9]{1,2}([.][0-9]{1,2})([.][0-9]{1,2})"
 readonly webPageFileRegExp="user([1-9]|[1-2][0-9])[.]asp"
 readonly webPageLineTabExp="\{url: \"$webPageFileRegExp\", tabName: "
 readonly webPageLineRegExp="${webPageLineTabExp}\"$SCRIPT_NAME\"\},"
-readonly scriptVERINFO="[${SCRIPT_VERSION}_${SCRIPT_VERSTAG}, Branch: $SCRIPT_BRANCH]"
+readonly branchx_TAG="Branch: $SCRIPT_BRANCH"
+readonly version_TAG="${SCRIPT_VERSION}_${SCRIPT_VERSTAG}"
 
 # Give higher priority to built-in binaries #
 export PATH="/bin:/usr/bin:/sbin:/usr/sbin:$PATH"
@@ -743,7 +744,7 @@ _Firmware_Support_Check_()
 		Print_Output true "Please update to benefit from $SCRIPT_NAME detecting wireless restarts" "$WARN"
 	elif [ "$fwInstalledBaseVers" -eq 3006 ]
 	then
-		FW_NOT_Supported=true
+		FW_NOT_Supported=true ; echo
 		Print_Output true "F/W ${fwInstalledBranchVer}.* version detected. YazFi is NOT supported on this firmware." "$ERR"
 	fi
 
@@ -3874,7 +3875,7 @@ Show_About()
 {
 	printf "About ${MGNTct}${SCRIPT_VERS_INFO}${CLRct}\n"
 	cat <<EOF
-  $SCRIPT_NAME is a Feature expansion of Guest WiFi networks on
+  $SCRIPT_NAME is a feature expansion of Guest WiFi networks on
 AsusWRT-Merlin, including SSID -> VPN, separate subnets per guest
 network, pinhole access to LAN resources (e.g. DNS) and more!
 
@@ -3925,9 +3926,9 @@ EOF
 # Make the one call needed to load module #
 modprobe xt_comment
 
-if [ "$SCRIPT_BRANCH" != "develop" ]
-then SCRIPT_VERS_INFO=""
-else SCRIPT_VERS_INFO="$scriptVERINFO"
+if [ "$SCRIPT_BRANCH" = "master" ]
+then SCRIPT_VERS_INFO="[$branchx_TAG]"
+else SCRIPT_VERS_INFO="[$version_TAG, $branchx_TAG]"
 fi
 
 ##----------------------------------------##
@@ -3943,7 +3944,7 @@ then
 		    printf "${MGNTct}/jffs/scripts/$SCRIPT_NAME uninstall${CLRct}\n\n"
 		fi
 		PressEnter
-		printf "\n${ERR}Exiting...${CLRct}\n"
+		printf "\n${ERR}Exiting...${CLRct}\n\n"
 		Clear_Lock
 		exit 1
 	fi
