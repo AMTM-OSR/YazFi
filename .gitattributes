@@ -3,3 +3,8 @@
 *.asp text eol=lf
 *.config.example text eol=lf
 * text=auto eol=lf
+*.gz binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.zip binary
