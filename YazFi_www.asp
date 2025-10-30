@@ -21,30 +21,33 @@ p{font-weight:bolder}thead.collapsible-jquery{color:#fff;padding:0;width:100%;bo
 <script language="JavaScript" type="text/javascript" src="/popup.js"></script>
 <script language="JavaScript" type="text/javascript" src="/help.js"></script>
 <script language="JavaScript" type="text/javascript" src="/ext/shared-jy/detect.js"></script>
-<script language="JavaScript" type="text/javascript" src="/tmhist.js"></script>
-<script language="JavaScript" type="text/javascript" src="/tmmenu.js"></script>
 <script language="JavaScript" type="text/javascript" src="/client_function.js"></script>
 <script language="JavaScript" type="text/javascript" src="/validator.js"></script>
 <script language="JavaScript" type="text/javascript" src="/base64.js"></script>
 <script>
 
 /**----------------------------------------**/
-/** Modified by Martinski W. [2024-Aug-19] **/
+/** Modified by Martinski W. [2025-Oct-27] **/
 /**----------------------------------------**/
 
 var custom_settings;
-function LoadCustomSettings(){
+function LoadCustomSettings()
+{
 	custom_settings = <% get_custom_settings(); %>;
-	for(var prop in custom_settings){
-		if (Object.prototype.hasOwnProperty.call(custom_settings,prop)){
-			if (prop.indexOf('yazfi') !== -1 && prop.indexOf('yazfi_version') === -1){
+	for (var prop in custom_settings)
+	{
+		if (Object.prototype.hasOwnProperty.call(custom_settings,prop))
+		{
+			if (prop.indexOf('yazfi') !== -1 && prop.indexOf('yazfi_version') === -1)
+			{
 				eval('delete custom_settings.'+prop);
 			}
 		}
 	}
 }
 
-function jy_checkIPConflict(CompareItem,sourceIP,sourceMask,compareIP,compareMask){
+function jy_checkIPConflict(CompareItem,sourceIP,sourceMask,compareIP,compareMask)
+{
 	var SetIPConflictAttr = function(){
 		this.state = false;
 		this.ipAddr = '';
