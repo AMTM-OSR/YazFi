@@ -17,7 +17,7 @@
 ##       Guest Network DHCP script and for       ##
 ##            AsusWRT-Merlin firmware            ##
 ###################################################
-# Last Modified: 2025-Jul-18
+# Last Modified: 2025-Oct-30
 #--------------------------------------------------
 
 ######       Shellcheck directives     ######
@@ -41,9 +41,9 @@
 ### Start of script variables ###
 readonly SCRIPT_NAME="YazFi"
 readonly SCRIPT_CONF="/jffs/addons/$SCRIPT_NAME.d/config"
-readonly YAZFI_VERSION="v4.4.8"
-readonly SCRIPT_VERSION="v4.4.8"
-readonly SCRIPT_VERSTAG="25071823"
+readonly YAZFI_VERSION="v4.4.9"
+readonly SCRIPT_VERSION="v4.4.9"
+readonly SCRIPT_VERSTAG="25103020"
 SCRIPT_BRANCH="develop"
 SCRIPT_REPO="https://raw.githubusercontent.com/AMTM-OSR/$SCRIPT_NAME/$SCRIPT_BRANCH"
 readonly SCRIPT_DIR="/jffs/addons/$SCRIPT_NAME.d"
@@ -65,20 +65,12 @@ readonly BOLD="\\e[1m"
 readonly SETTING="${BOLD}\\e[36m"
 readonly CLEARFORMAT="\\e[0m"
 readonly CLRct="\e[0m"
+readonly REDct="\e[1;31m"
+readonly GRNct="\e[1;32m"
 readonly MGNTct="\e[1;35m"
 ### End of output format variables ###
 
 ### Start of router environment variables ###
-
-##-------------------------------------##
-## Added by Martinski W. [2025-Mar-16] ##
-##-------------------------------------##
-readonly scriptVersRegExp="v[0-9]{1,2}([.][0-9]{1,2})([.][0-9]{1,2})"
-readonly webPageFileRegExp="user([1-9]|[1-2][0-9])[.]asp"
-readonly webPageLineTabExp="\{url: \"$webPageFileRegExp\", tabName: "
-readonly webPageLineRegExp="${webPageLineTabExp}\"$SCRIPT_NAME\"\},"
-readonly branchx_TAG="Branch: $SCRIPT_BRANCH"
-readonly version_TAG="${SCRIPT_VERSION}_${SCRIPT_VERSTAG}"
 
 # Give higher priority to built-in binaries #
 export PATH="/bin:/usr/bin:/sbin:/usr/sbin:$PATH"
@@ -90,6 +82,17 @@ readonly LAN_IPaddr="$(nvram get lan_ipaddr)"
 readonly LAN_IFname="$(nvram get lan_ifname)"
 [ -z "$(nvram get odmpid)" ] && ROUTER_MODEL="$(nvram get productid)" || ROUTER_MODEL="$(nvram get odmpid)"
 ROUTER_MODEL="$(echo "$ROUTER_MODEL" | tr 'a-z' 'A-Z')"
+
+##-------------------------------------##
+## Added by Martinski W. [2025-Mar-16] ##
+##-------------------------------------##
+readonly scriptVersRegExp="v[0-9]{1,2}([.][0-9]{1,2})([.][0-9]{1,2})"
+readonly webPageFileRegExp="user([1-9]|[1-2][0-9])[.]asp"
+readonly webPageLineTabExp="\{url: \"$webPageFileRegExp\", tabName: "
+readonly webPageLineRegExp="${webPageLineTabExp}\"$SCRIPT_NAME\"\},"
+readonly branchxStr_TAG="[Branch: $SCRIPT_BRANCH]"
+readonly versionDev_TAG="${SCRIPT_VERSION}_${SCRIPT_VERSTAG}"
+readonly versionMod_TAG="$SCRIPT_VERSION on $ROUTER_MODEL"
 
 ##-------------------------------------##
 ## Added by Martinski W. [2025-Mar-16] ##
@@ -2991,50 +2994,82 @@ PressEnter()
 	return 0
 }
 
+##-------------------------------------##
+## Added by Martinski W. [2025-Oct-26] ##
+##-------------------------------------##
+_CenterTextStr_()
+{
+    if [ $# -lt 2 ] || [ -z "$1" ] || [ -z "$2" ] || \
+       ! echo "$2" | grep -qE "^[1-9][0-9]+$"
+    then echo ; return 1
+    fi
+    local stringLen="${#1}"
+    local space1Len="$((($2 - stringLen)/2))"
+    local space2Len="$space1Len"
+    local totalLen="$((space1Len + stringLen + space2Len))"
+
+    if [ "$totalLen" -lt "$2" ]
+    then space2Len="$((space2Len + 1))"
+    elif [ "$totalLen" -gt "$2" ]
+    then space1Len="$((space1Len - 1))"
+    fi
+    if [ "$space1Len" -gt 0 ] && [ "$space2Len" -gt 0 ]
+    then printf "%*s%s%*s" "$space1Len" '' "$1" "$space2Len" ''
+    else printf "%s" "$1"
+    fi
+}
+
+##----------------------------------------##
+## Modified by Martinski W. [2025-Oct-26] ##
+##----------------------------------------##
 ScriptHeader()
 {
 	clear
-	printf "\n"
-	printf "${BOLD}###################################################${CLEARFORMAT}\\n"
-	printf "${BOLD}##                                               ##${CLEARFORMAT}\\n"
-	printf "${BOLD}##        __     __          ______  _           ##${CLEARFORMAT}\\n"
-	printf "${BOLD}##        \ \   / /         |  ____|(_)          ##${CLEARFORMAT}\\n"
-	printf "${BOLD}##         \ \_/ /__ _  ____| |__    _           ##${CLEARFORMAT}\\n"
-	printf "${BOLD}##          \   // _  ||_  /|  __|  | |          ##${CLEARFORMAT}\\n"
-	printf "${BOLD}##           | || (_| | / / | |     | |          ##${CLEARFORMAT}\\n"
-	printf "${BOLD}##           |_| \__,_|/___||_|     |_|          ##${CLEARFORMAT}\\n"
-	printf "${BOLD}##                                               ##${CLEARFORMAT}\\n"
-	printf "${BOLD}##          %9s on %-18s      ##${CLEARFORMAT}\n" "$SCRIPT_VERSION" "$ROUTER_MODEL"
-	printf "${BOLD}##                                               ##${CLEARFORMAT}\\n"
-	printf "${BOLD}##       https://github.com/AMTM-OSR/YazFi       ##${CLEARFORMAT}\\n"
-	printf "${BOLD}## Forked from: https://github.com/jackyaz/YazFi ##${CLEARFORMAT}\\n"
-	printf "${BOLD}##                                               ##${CLEARFORMAT}\\n"
-	printf "${BOLD}###################################################${CLEARFORMAT}\\n"
-	printf "\n"
+	local spaceLen=46  colorCT
+	[ "$SCRIPT_BRANCH" = "master" ] && colorCT="$GRNct" || colorCT="$MGNTct"
+	echo
+	printf "${BOLD}####################################################${CLRct}\n"
+	printf "${BOLD}##         __     __          ______  _           ##${CLRct}\n"
+	printf "${BOLD}##         \ \   / /         |  ____|(_)          ##${CLRct}\n"
+	printf "${BOLD}##          \ \_/ /__ _  ____| |__    _           ##${CLRct}\n"
+	printf "${BOLD}##           \   // _  ||_  /|  __|  | |          ##${CLRct}\n"
+	printf "${BOLD}##            | || (_| | / / | |     | |          ##${CLRct}\n"
+	printf "${BOLD}##            |_| \__,_|/___||_|     |_|          ##${CLRct}\n"
+	printf "${BOLD}##                                                ##${CLRct}\n"
+	printf "${BOLD}## ${GRNct}%s${CLRct}${BOLD} ##${CLRct}\n" "$(_CenterTextStr_ "$versionMod_TAG" "$spaceLen")"
+	printf "${BOLD}## ${colorCT}%s${CLRct}${BOLD} ##${CLRct}\n" "$(_CenterTextStr_ "$branchxStr_TAG" "$spaceLen")"
+	printf "${BOLD}##                                                ##${CLRct}\n"
+	printf "${BOLD}##       https://github.com/AMTM-OSR/YazFi        ##${CLRct}\n"
+	printf "${BOLD}## Forked from: https://github.com/jackyaz/YazFi  ##${CLRct}\n"
+	printf "${BOLD}##                                                ##${CLRct}\n"
+	printf "${BOLD}####################################################${CLRct}\n\n"
 }
 
+##----------------------------------------##
+## Modified by Martinski W. [2025-Oct-26] ##
+##----------------------------------------##
 MainMenu()
 {
-	printf "WebUI for %s is available at:\n${SETTING}%s${CLEARFORMAT}\n\n" "$SCRIPT_NAME" "$(Get_WebUI_URL)"
+	printf "WebUI for %s is available at:\n${SETTING}%s${CLRct}\n\n" "$SCRIPT_NAME" "$(Get_WebUI_URL)"
 
 	printf "1.    Apply %s settings\n\n" "$SCRIPT_NAME"
-	printf "2.    Show connected clients using %s\\n\\n" "$SCRIPT_NAME"
-	printf "3.    Edit %s config\\n" "$SCRIPT_NAME"
-	printf "4.    Edit Guest Network config (SSID + passphrase)\\n\\n"
+	printf "2.    Show connected clients using %s\n\n" "$SCRIPT_NAME"
+	printf "3.    Edit %s config\n" "$SCRIPT_NAME"
+	printf "4.    Edit Guest Network config (SSID + passphrase)\n\n"
 	if [ -f /opt/bin/qrencode ]
 	then
 		printf "5.    Show QR Code for Guest Network\n\n"
 	else
 		printf "\nQR Code generation NOT supported.\n\n"
 	fi
-	printf "u.    Check for updates\\n"
-	printf "uf.   Update %s with latest version (force update)\\n\\n" "$SCRIPT_NAME"
-	printf "d.    Generate %s diagnostics\\n\\n" "$SCRIPT_NAME"
-	printf "e.    Exit %s\\n\\n" "$SCRIPT_NAME"
-	printf "z.    Uninstall %s\\n" "$SCRIPT_NAME"
-	printf "\\n"
-	printf "${BOLD}#############################################${CLEARFORMAT}\\n"
-	printf "\\n"
+	printf "u.    Check for updates\n"
+	printf "uf.   Update %s with latest version (force update)\n\n" "$SCRIPT_NAME"
+	printf "d.    Generate %s diagnostics\n\n" "$SCRIPT_NAME"
+	printf "e.    Exit %s\n\n" "$SCRIPT_NAME"
+	printf "z.    Uninstall %s\n" "$SCRIPT_NAME"
+	printf "\n"
+	printf "${BOLD}#############################################${CLRct}\n"
+	printf "\n"
 
 	while true
 	do
@@ -3042,7 +3077,7 @@ MainMenu()
 		read -r menuOption
 		case "$menuOption" in
 			1)
-				printf "\\n"
+				printf "\n"
 				if Check_Lock menu; then
 					Config_Networks
 					Clear_Lock
@@ -3112,7 +3147,7 @@ MainMenu()
 			;;
 			e)
 				ScriptHeader
-				printf "\\n${BOLD}Thanks for using %s!${CLEARFORMAT}\\n\\n\\n" "$SCRIPT_NAME"
+				printf "\n${BOLD}Thanks for using %s!${CLEARFORMAT}\n\n\n" "$SCRIPT_NAME"
 				exit 0
 			;;
 			z)
@@ -3264,6 +3299,7 @@ Menu_Startup()
 	Create_Dirs
 	Create_Symlinks
 	Auto_Cron create 2>/dev/null
+	Set_Version_Custom_Settings local "$SCRIPT_VERSION"
 	Mount_WebUI
 }
 
@@ -3927,8 +3963,8 @@ EOF
 modprobe xt_comment
 
 if [ "$SCRIPT_BRANCH" = "master" ]
-then SCRIPT_VERS_INFO="[$branchx_TAG]"
-else SCRIPT_VERS_INFO="[$version_TAG, $branchx_TAG]"
+then SCRIPT_VERS_INFO=""
+else SCRIPT_VERS_INFO="[$versionDev_TAG]"
 fi
 
 ##----------------------------------------##
@@ -3957,6 +3993,7 @@ then
 	Auto_ServiceEvent create 2>/dev/null
 	Auto_ServiceStart create 2>/dev/null
 	Auto_OpenVPNEvent create 2>/dev/null
+	Set_Version_Custom_Settings local "$SCRIPT_VERSION"
 	Shortcut_Script create
 	_CheckFor_WebGUI_Page_
 	ScriptHeader
