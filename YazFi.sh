@@ -17,7 +17,7 @@
 ##       Guest Network DHCP script and for       ##
 ##            AsusWRT-Merlin firmware            ##
 ###################################################
-# Last Modified: 2025-Oct-30
+# Last Modified: 2025-Nov-04
 #--------------------------------------------------
 
 ######       Shellcheck directives     ######
@@ -43,7 +43,7 @@ readonly SCRIPT_NAME="YazFi"
 readonly SCRIPT_CONF="/jffs/addons/$SCRIPT_NAME.d/config"
 readonly YAZFI_VERSION="v4.4.9"
 readonly SCRIPT_VERSION="v4.4.9"
-readonly SCRIPT_VERSTAG="25103020"
+readonly SCRIPT_VERSTAG="25110423"
 SCRIPT_BRANCH="develop"
 SCRIPT_REPO="https://raw.githubusercontent.com/AMTM-OSR/$SCRIPT_NAME/$SCRIPT_BRANCH"
 readonly SCRIPT_DIR="/jffs/addons/$SCRIPT_NAME.d"
@@ -2552,7 +2552,7 @@ Routing_NVRAM()
 			do
 				if [ "$(eval echo '$'"VPN_IP_LIST_ORIG_$COUNTER")" != "$(eval echo '$'"VPN_IP_LIST_NEW_$COUNTER")" ]
 				then
-					Print_Output true "VPN Client $COUNTER client list has changed, restarting VPN Client $COUNTER"
+					Print_Output true "VPN Client $COUNTER client list has changed, restarting VPN Client $COUNTER" "$PASS"
 
 					if [ "$(/bin/uname -m)" = "aarch64" ]
 					then
@@ -2680,7 +2680,7 @@ DHCP_Conf()
 			then
 				cp "$TMPCONF" "$DNSCONF"
 				service restart_dnsmasq >/dev/null 2>&1
-				Print_Output true "DHCP configuration updated"
+				Print_Output true "DHCP configuration updated" "$PASS"
 				sleep 2
 			fi
 
@@ -2714,7 +2714,7 @@ _NVRAM_Get_WAN_IFace_()
 ##----------------------------------------##
 Config_Networks()
 {
-	Print_Output true "$SCRIPT_NAME $SCRIPT_VERSION starting up"
+	Print_Output true "$SCRIPT_NAME $SCRIPT_VERSION starting up" "$PASS"
 	WIRELESSRESTART="false"
 	GUESTLANENABLED="false"
 
@@ -2773,7 +2773,7 @@ Config_Networks()
 			then
 				if [ "$(eval echo '$'"$(Get_Iface_Var "$IFACE")_REDIRECTALLTOVPN")" = "true" ]
 				then
-					Print_Output true "$IFACE (SSID: $(nvram get "${IFACE}_ssid")) - VPN redirection enabled, sending all interface internet traffic over VPN Client $VPNCLIENTNO"
+					Print_Output true "$IFACE (SSID: $(nvram get "${IFACE}_ssid")) - VPN redirection enabled, sending all interface internet traffic over VPN Client $VPNCLIENTNO" "$PASS"
 
 					if [ "$(_FWVersionStrToNum_ "$fwInstalledBranchVer")" -lt "$(_FWVersionStrToNum_ 3004.386.3)" ]
 					then
@@ -2784,7 +2784,7 @@ Config_Networks()
 
 					Firewall_NAT create "$IFACE" "$VPNCLIENTNO" 2>/dev/null
 				else
-					Print_Output true "$IFACE (SSID: $(nvram get "${IFACE}_ssid")) - sending all interface internet traffic over WAN interface"
+					Print_Output true "$IFACE (SSID: $(nvram get "${IFACE}_ssid")) - sending all interface internet traffic over WAN interface" "$PASS"
 
 					Firewall_NAT delete "$IFACE" 2>/dev/null
 
@@ -2810,7 +2810,7 @@ Config_Networks()
 
 			if [ "$(eval echo '$'"$(Get_Iface_Var "$IFACE")_ALLOWINTERNET")" = "false" ]
 			then
-				Print_Output true "$IFACE (SSID: $(nvram get "${IFACE}_ssid")) - allow internet disabled, blocking all interface internet traffic"
+				Print_Output true "$IFACE (SSID: $(nvram get "${IFACE}_ssid")) - allow internet disabled, blocking all interface internet traffic" "$WARN"
 				Firewall_BlockInternet create "$IFACE" 2>/dev/null
 			else
 				Firewall_BlockInternet delete "$IFACE" 2>/dev/null
@@ -2916,7 +2916,7 @@ Execute_UserScripts()
 	for shFile in $FILES
 	do
 		if [ -f "$shFile" ]; then
-			Print_Output true "Executing user script: $shFile"
+			Print_Output true "Executing user script: $shFile" "$PASS"
 			sh "$shFile"
 		fi
 	done
@@ -3253,7 +3253,7 @@ Menu_Install()
 	then
 		Conf_Download "$SCRIPT_CONF"
 	else
-		Print_Output false "Existing $SCRIPT_CONF found. This will be kept by $SCRIPT_NAME"
+		Print_Output false "Existing $SCRIPT_CONF found. This will be kept by $SCRIPT_NAME" "$PASS"
 		Conf_Download "$SCRIPT_CONF.example"
 	fi
 
