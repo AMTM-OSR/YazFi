@@ -19,7 +19,7 @@ jobs:
     steps:
       # 1--- Check out master so we tag the exact merge commit
       - name: Checkout source code
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v5.0.0
         with:
           fetch-depth: 0
           ref: 'master'
@@ -97,7 +97,7 @@ jobs:
 
       # 7--- Publish a GitHub Release with auto-generated notes
       - name: Create Release with Automated Release Notes
-        uses: softprops/action-gh-release@v2.3.2
+        uses: softprops/action-gh-release@v2.4.1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: ${{ steps.nextver.outputs.tag }}
