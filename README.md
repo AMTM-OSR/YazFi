@@ -39,7 +39,7 @@ Please then follow instructions shown on-screen. An explanation of the settings 
 ## Prerequisites
 1. [Asuswrt-Merlin](https://asuswrt.lostrealm.ca/ "Pure Freaking Magic") running on a supported ASUS router
 2. **Entware** (optional but recommended), preferably installed via [amtm](https://github.com/decoderman/amtm "amtm"), to enable enhanced features and functionality
-3 jffs scripts enabled in the firmware; this can be set manually, and installing **Entware** via amtm usually takes care of it
+3. jffs scripts enabled in the firmware; this can be set manually, and installing **Entware** via amtm usually takes care of it
 
 ## Usage
 ### WebUI
