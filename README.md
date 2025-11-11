@@ -34,12 +34,12 @@ Using your preferred SSH client/terminal, copy and paste the following command, 
 /usr/sbin/curl -fsL --retry 3 "https://raw.githubusercontent.com/AMTM-OSR/YazFi/master/YazFi.sh" -o /jffs/scripts/YazFi && chmod 0755 /jffs/scripts/YazFi && /jffs/scripts/YazFi install
 ```
 
-## Prerequisites
-Asuswrt-Merlin running on a supported ASUS router
-Entware installed, preferably using amtm
-jffs scripts enabled in the firmware; installing Entware should have taken care of this part
-
 Please then follow instructions shown on-screen. An explanation of the settings is provided in the [FAQs](#explanation-of-yazfi-settings)
+
+## Prerequisites
+- Asuswrt-Merlin running on a supported ASUS router
+- Entware (optional but recommended), preferably installed via amtm, to enable enhanced features and functionality
+- jffs scripts enabled in the firmware; this can be set manually, and installing Entware via amtm usually takes care of it
 
 ## Usage
 ### WebUI
