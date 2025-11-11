@@ -38,8 +38,8 @@ Please then follow instructions shown on-screen. An explanation of the settings 
 
 ## Prerequisites
 - Asuswrt-Merlin running on a supported ASUS router
-- Entware installed, preferably using amtm
-- jffs scripts enabled in the firmware; installing Entware should have taken care of this part
+- Entware (optional but recommended), preferably installed via amtm, to enable enhanced features and functionality
+- jffs scripts enabled in the firmware; this can be set manually, and installing Entware via amtm usually takes care of it
 
 ## Usage
 ### WebUI
