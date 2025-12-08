@@ -19,7 +19,7 @@ jobs:
     steps:
       # 1--- Check out master so we tag the exact merge commit
       - name: Checkout source code
-        uses: actions/checkout@v6.0.0
+        uses: actions/checkout@v6.0.1
         with:
           fetch-depth: 0
           ref: 'master'
