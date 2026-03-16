@@ -17,7 +17,7 @@
 ##       Guest Network DHCP script and for       ##
 ##            AsusWRT-Merlin firmware            ##
 ###################################################
-# Last Modified: 2026-Feb-18
+# Last Modified: 2026-Mar-15
 #--------------------------------------------------
 
 ######       Shellcheck directives     ######
@@ -43,7 +43,7 @@ readonly SCRIPT_NAME="YazFi"
 readonly SCRIPT_CONF="/jffs/addons/$SCRIPT_NAME.d/config"
 readonly YAZFI_VERSION="v4.4.10"
 readonly SCRIPT_VERSION="v4.4.10"
-readonly SCRIPT_VERSTAG="26021800"
+readonly SCRIPT_VERSTAG="26031520"
 SCRIPT_BRANCH="develop"
 SCRIPT_REPO="https://raw.githubusercontent.com/AMTM-OSR/$SCRIPT_NAME/$SCRIPT_BRANCH"
 readonly SCRIPT_DIR="/jffs/addons/$SCRIPT_NAME.d"
@@ -402,35 +402,44 @@ Iface_Manage(){
 Iface_BounceClients()
 {
 	local callSleep=false
-	Print_Output true "Forcing $SCRIPT_NAME Guest WiFi clients to reauthenticate" "$PASS"
-	Print_Output false "Please wait..." "$PASS"
+	if [ -n "$IFACELIST" ]
+	then
+		Print_Output true "Forcing $SCRIPT_NAME Guest WiFi clients to reauthenticate" "$PASS"
+		Print_Output false "Please wait..." "$PASS"
+	fi
 
-	for IFACE in $IFACELIST; do
+	for IFACE in $IFACELIST
+	do
 		callSleep=true
 		wl -i "$IFACE" radio off >/dev/null 2>&1
 	done
 	"$callSleep" && sleep 10
 
-	for IFACE in $IFACELIST; do
+	for IFACE in $IFACELIST
+	do
 		callSleep=true
 		wl -i "$IFACE" radio on >/dev/null 2>&1
 	done
 	"$callSleep" && sleep 2
 
 	ARP_CACHE="/proc/net/arp"
-	for IFACE in $IFACELIST; do
+	for IFACE in $IFACELIST
+	do
 		if [ "$(eval echo '$'"$(Get_Iface_Var "$IFACE")_ENABLED")" = "true" ]
 		then
 			IFACE_MACS="$(wl -i "$IFACE" assoclist)"
-			if [ "$IFACE_MACS" != "" ]; then
+			if [ "$IFACE_MACS" != "" ]
+			then
 				IFS=$'\n'
-				for GUEST_MAC in $IFACE_MACS; do
+				for GUEST_MAC in $IFACE_MACS
+				do
 					GUEST_MACADDR="${GUEST_MAC#* }"
 					GUEST_ARPCOUNT="$(grep -ic "$GUEST_MACADDR" "$ARP_CACHE")"
 					[ "$GUEST_ARPCOUNT" -eq 0 ] && continue
 
 					GUEST_ARPINFO="$(grep -i "$GUEST_MACADDR" "$ARP_CACHE")"
-					for ARP_ENTRY in $GUEST_ARPINFO; do
+					for ARP_ENTRY in $GUEST_ARPINFO
+					do
 						GUEST_IPADDR="$(echo "$ARP_ENTRY" | awk -F ' ' '{print $1}')"
 						arp -d "$GUEST_IPADDR"
 					done
@@ -448,10 +457,12 @@ Iface_BounceClients()
 	fi
 }
 
-Auto_DNSMASQ(){
+Auto_DNSMASQ()
+{
 	case $1 in
 		create)
-			if [ -f /jffs/scripts/dnsmasq.postconf ]; then
+			if [ -f /jffs/scripts/dnsmasq.postconf ]
+			then
 				STARTUPLINECOUNT=$(grep -c "# $SCRIPT_NAME" /jffs/scripts/dnsmasq.postconf)
 				STARTUPLINECOUNTEX=$(grep -cx "cat $DNSCONF >> /etc/dnsmasq.conf # $SCRIPT_NAME" /jffs/scripts/dnsmasq.postconf)
 
@@ -1465,7 +1476,7 @@ Conf_FixBlanks()
 ##----------------------------------------##
 Conf_Validate()
 {
-	GUESTNET_ENABLED="false"
+	GUESTNET_ENABLED=false
 
 	Conf_FixBlanks
 
@@ -1474,44 +1485,44 @@ Conf_Validate()
 		IFACETMP="$(Get_Iface_Var "$IFACE")"
 		IPADDRTMP=""
 		REDIRECTTMP=""
-		IFACE_PASS="true"
+		IFACE_PASS=true
 		IFACE_ENABLED=""
 
 		if [ -z "$(eval echo '$'"${IFACETMP}_ENABLED")" ]
 		then
-			IFACE_ENABLED="false"
+			IFACE_ENABLED=false
 			sed -i -e "s/${IFACETMP}_ENABLED=/${IFACETMP}_ENABLED=false/" "$SCRIPT_CONF"
 			Print_Output false "${IFACETMP}_ENABLED is blank, setting to false" "$WARN"
 		elif ! Validate_TrueFalse "${IFACETMP}_ENABLED" "$(eval echo '$'"${IFACETMP}_ENABLED")"
 		then
-			IFACE_ENABLED="false"
-			IFACE_PASS="false"
+			IFACE_ENABLED=false
+			IFACE_PASS=false
 		else
 			IFACE_ENABLED="$(eval echo '$'"${IFACETMP}_ENABLED")"
 		fi
 
 		if [ "$IFACE_ENABLED" = "false" ]
 		then
-			IFACE_PASS="false"
+			IFACE_PASS=false
 			Print_Output false "Interface $IFACE is not enabled in $SCRIPT_NAME configuration" "$WARN"
 		#
 		elif ! echo "$IFACELIST_ORIG" | grep -q "$IFACE"
 		then
-			IFACE_PASS="false"
+			IFACE_PASS=false
 			Print_Output false "Interface $IFACE is not supported on this router" "$ERR"
 		#
 		elif ! Validate_Enabled_IFACE "$IFACE" || ! Validate_Exists_IFACE "$IFACE"
 		then
-			IFACE_PASS="false"
-			GUESTNET_ENABLED="true"
+			IFACE_PASS=false
+			GUESTNET_ENABLED=true
 		else
-			GUESTNET_ENABLED="true"
+			GUESTNET_ENABLED=true
 
 				if [ "$(eval echo '$'"${IFACETMP}_ENABLED")" = "true" ]
 				then
 					if ! Validate_IP "${IFACETMP}_IPADDR" "$(eval echo '$'"${IFACETMP}_IPADDR")"
 					then
-						IFACE_PASS="false"
+						IFACE_PASS=false
 					else
 						IPADDRTMP="$(eval echo '$'"${IFACETMP}_IPADDR" | cut -f1-3 -d".")"
 
@@ -1524,14 +1535,14 @@ Conf_Validate()
 						if [ "$(ifconfig -a | grep -o "inet addr:$IPADDRTMP.$(nvram get lan_ipaddr | cut -f4 -d'.')"  | sed 's/inet addr://' | wc -l )" -gt 1 ]
 						then
 							Print_Output false "${IFACETMP}_IPADDR ($(eval echo '$'"${IFACETMP}_IPADDR")) has been used for another interface already" "$ERR"
-							IFACE_PASS="false"
+							IFACE_PASS=false
 						fi
 					fi
 
 					if [ -n "$(eval echo '$'"${IFACETMP}_DHCPSTART")" ] && [ -n "$(eval echo '$'"${IFACETMP}_DHCPEND")" ]
 					then
 						if ! Validate_DHCP "${IFACETMP}_DHCPSTART|and|${IFACETMP}_DHCPEND" "$(eval echo '$'"${IFACETMP}_DHCPSTART")" "$(eval echo '$'"${IFACETMP}_DHCPEND")"; then
-						IFACE_PASS="false"
+						IFACE_PASS=false
 						fi
 					fi
 
@@ -1542,13 +1553,13 @@ Conf_Validate()
 					then
 						if ! Validate_DHCP_LeaseTime "${IFACETMP}_DHCPLEASE" "$(eval echo '$'"${IFACETMP}_DHCPLEASE")"
 						then
-							IFACE_PASS="false"
+							IFACE_PASS=false
 						fi
 					fi
 
 					if ! Validate_TrueFalse "${IFACETMP}_FORCEDNS" "$(eval echo '$'"${IFACETMP}_FORCEDNS")"
 					then
-						IFACE_PASS="false"
+						IFACE_PASS=false
 					else
 						if [ "$(eval echo '$'"${IFACETMP}_FORCEDNS")" = "true" ]
 						then
@@ -1559,18 +1570,18 @@ Conf_Validate()
 
 					if ! Validate_IP "${IFACETMP}_DNS1" "$(eval echo '$'"${IFACETMP}_DNS1")" "DNS"
 					then
-						IFACE_PASS="false"
+						IFACE_PASS=false
 					fi
 
 					if ! Validate_IP "${IFACETMP}_DNS2" "$(eval echo '$'"${IFACETMP}_DNS2")" "DNS"
 					then
-						IFACE_PASS="false"
+						IFACE_PASS=false
 					fi
 
 					if ! Validate_TrueFalse "${IFACETMP}_ALLOWINTERNET" "$(eval echo '$'"${IFACETMP}_ALLOWINTERNET")"
 					then
 						ALLOWINTERNETTMP="true"
-						IFACE_PASS="false"
+						IFACE_PASS=false
 					else
 						ALLOWINTERNETTMP="$(eval echo '$'"${IFACETMP}_ALLOWINTERNET")"
 					fi
@@ -1578,19 +1589,19 @@ Conf_Validate()
 					if [ "$ALLOWINTERNETTMP" = "false" ] && ! IP_Local "$(eval echo '$'"${IFACETMP}_DNS1")"
 					then
 						Print_Output false "$IFACE has internet access disabled and a non-local IP has been set for DNS1" "$ERR"
-						IFACE_PASS="false"
+						IFACE_PASS=false
 					fi
 
 					if [ "$ALLOWINTERNETTMP" = "false" ] && ! IP_Local "$(eval echo '$'"${IFACETMP}_DNS2")"
 					then
 						Print_Output false "$IFACE has internet access disabled and a non-local IP has been set for DNS2" "$ERR"
-						IFACE_PASS="false"
+						IFACE_PASS=false
 					fi
 
 					if ! Validate_TrueFalse "${IFACETMP}_REDIRECTALLTOVPN" "$(eval echo '$'"${IFACETMP}_REDIRECTALLTOVPN")"
 					then
 						REDIRECTTMP="false"
-						IFACE_PASS="false"
+						IFACE_PASS=false
 					else
 						REDIRECTTMP="$(eval echo '$'"${IFACETMP}_REDIRECTALLTOVPN")"
 					fi
@@ -1599,7 +1610,7 @@ Conf_Validate()
 					then
 						if ! Validate_VPNClientNo "${IFACETMP}_VPNCLIENTNUMBER" "$(eval echo '$'"${IFACETMP}_VPNCLIENTNUMBER")"
 						then
-							IFACE_PASS="false"
+							IFACE_PASS=false
 						else
 							if [ "$(nvram get vpn_client"$(eval echo '$'"${IFACETMP}_VPNCLIENTNUMBER")"_rgw)" -ne 2 ]
 							then
@@ -1610,23 +1621,25 @@ Conf_Validate()
 						fi
 					fi
 
-					if ! Validate_TrueFalse "${IFACETMP}_TWOWAYTOGUEST" "$(eval echo '$'"${IFACETMP}_TWOWAYTOGUEST")"; then
-						IFACE_PASS="false"
+					if ! Validate_TrueFalse "${IFACETMP}_TWOWAYTOGUEST" "$(eval echo '$'"${IFACETMP}_TWOWAYTOGUEST")"
+					then
+						IFACE_PASS=false
 					fi
 
-					if ! Validate_TrueFalse "${IFACETMP}_ONEWAYTOGUEST" "$(eval echo '$'"${IFACETMP}_ONEWAYTOGUEST")"; then
-						IFACE_PASS="false"
+					if ! Validate_TrueFalse "${IFACETMP}_ONEWAYTOGUEST" "$(eval echo '$'"${IFACETMP}_ONEWAYTOGUEST")"
+					then
+						IFACE_PASS=false
 					fi
 
 					if [ "$(eval echo '$'"${IFACETMP}_ONEWAYTOGUEST")" = "true" ] && [ "$(eval echo '$'"${IFACETMP}_TWOWAYTOGUEST")" = "true" ]
 					then
 						Print_Output false "$(eval echo '$'"${IFACETMP}_ONEWAYTOGUEST") & $(eval echo '$'"${IFACETMP}_TWOWAYTOGUEST") cannot both be true" "$ERR"
-						IFACE_PASS="false"
+						IFACE_PASS=false
 					fi
 
 					if ! Validate_TrueFalse "${IFACETMP}_CLIENTISOLATION" "$(eval echo '$'"${IFACETMP}_CLIENTISOLATION")"
 					then
-						IFACE_PASS="false"
+						IFACE_PASS=false
 					fi
 
 					if [ "$(_FWVersionStrToNum_ "$fwInstalledBranchVer")" -lt "$(_FWVersionStrToNum_ 3004.386.1)" ]
@@ -1637,7 +1650,8 @@ Conf_Validate()
 						fi
 					fi
 
-					if [ "$IFACE_PASS" = "true" ]; then
+					if [ "$IFACE_PASS" = "true" ]
+					then
 						Print_Output false "$IFACE passed validation" "$PASS"
 					fi
 				fi
@@ -1654,8 +1668,10 @@ Conf_Validate()
 			fi
 		fi
 	done
+	IFACELIST="$(echo "$IFACELIST" | sed 's/^[[:blank:]]\+//;s/[[:blank:]]\+$//')"
 
-	if [ "$GUESTNET_ENABLED" = "false" ]; then
+	if [ "$GUESTNET_ENABLED" = "false" ]
+	then
 		Print_Output true "No $SCRIPT_NAME guest networks are enabled in the configuration file!" "$CRIT"
 	fi
 
