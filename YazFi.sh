@@ -17,7 +17,7 @@
 ##       Guest Network DHCP script and for       ##
 ##            AsusWRT-Merlin firmware            ##
 ###################################################
-# Last Modified: 2026-Mar-15
+# Last Modified: 2026-Mar-21
 #--------------------------------------------------
 
 ######       Shellcheck directives     ######
@@ -43,7 +43,7 @@ readonly SCRIPT_NAME="YazFi"
 readonly SCRIPT_CONF="/jffs/addons/$SCRIPT_NAME.d/config"
 readonly YAZFI_VERSION="v4.4.10"
 readonly SCRIPT_VERSION="v4.4.10"
-readonly SCRIPT_VERSTAG="26031520"
+readonly SCRIPT_VERSTAG="26032100"
 SCRIPT_BRANCH="develop"
 SCRIPT_REPO="https://raw.githubusercontent.com/AMTM-OSR/$SCRIPT_NAME/$SCRIPT_BRANCH"
 readonly SCRIPT_DIR="/jffs/addons/$SCRIPT_NAME.d"
@@ -3741,7 +3741,8 @@ Menu_Status()
 							GUEST_HOST="$(nvram get custom_clientlist | grep -ioE "<.*>$GUEST_MACADDR" | awk -F ">" '{print $(NF-1)}' | tr -d '<')" #thanks Adamm00
 						fi
 
-						if [ -x /opt/bin/dig ] && [ -z "$GUEST_HOST" ]; then
+						if [ -z "$GUEST_HOST" ] && [ -x /opt/bin/dig ]
+						then
 							GUEST_HOST="$(/opt/bin/dig +short +answer -x "$GUEST_IPADDR" '@'"$(nvram get lan_ipaddr)" | cut -f1 -d'.')"
 						fi
 					elif [ -n "$FOUND_IPADDR" ]
