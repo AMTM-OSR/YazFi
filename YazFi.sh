@@ -17,7 +17,7 @@
 ##       Guest Network DHCP script and for       ##
 ##            AsusWRT-Merlin firmware            ##
 ###################################################
-# Last Modified: 2026-Mar-21
+# Last Modified: 2026-Apr-11
 #--------------------------------------------------
 
 ######       Shellcheck directives     ######
@@ -41,9 +41,9 @@
 ### Start of script variables ###
 readonly SCRIPT_NAME="YazFi"
 readonly SCRIPT_CONF="/jffs/addons/$SCRIPT_NAME.d/config"
-readonly YAZFI_VERSION="v4.4.10"
-readonly SCRIPT_VERSION="v4.4.10"
-readonly SCRIPT_VERSTAG="26032100"
+readonly YAZFI_VERSION="v4.4.11"
+readonly SCRIPT_VERSION="v4.4.11"
+readonly SCRIPT_VERSTAG="26041104"
 SCRIPT_BRANCH="develop"
 SCRIPT_REPO="https://raw.githubusercontent.com/AMTM-OSR/$SCRIPT_NAME/$SCRIPT_BRANCH"
 readonly SCRIPT_DIR="/jffs/addons/$SCRIPT_NAME.d"
@@ -71,6 +71,9 @@ readonly MGNTct="\e[1;35m"
 ### End of output format variables ###
 
 ### Start of router environment variables ###
+
+# Workaround for Entware ELF binaries compiled with RUNPATH #
+unset LD_LIBRARY_PATH
 
 # Give higher priority to built-in binaries #
 export PATH="/bin:/usr/bin:/sbin:/usr/sbin:$PATH"
