@@ -17,7 +17,7 @@
 ##       Guest Network DHCP script and for       ##
 ##            AsusWRT-Merlin firmware            ##
 ###################################################
-# Last Modified: 2026-Apr-11
+# Last Modified: 2026-Apr-15
 #--------------------------------------------------
 
 ######       Shellcheck directives     ######
@@ -41,9 +41,9 @@
 ### Start of script variables ###
 readonly SCRIPT_NAME="YazFi"
 readonly SCRIPT_CONF="/jffs/addons/$SCRIPT_NAME.d/config"
-readonly YAZFI_VERSION="v4.4.11"
-readonly SCRIPT_VERSION="v4.4.11"
-readonly SCRIPT_VERSTAG="26041104"
+readonly YAZFI_VERSION="v4.4.12"
+readonly SCRIPT_VERSION="v4.4.12"
+readonly SCRIPT_VERSTAG="26041500"
 SCRIPT_BRANCH="develop"
 SCRIPT_REPO="https://raw.githubusercontent.com/AMTM-OSR/$SCRIPT_NAME/$SCRIPT_BRANCH"
 readonly SCRIPT_DIR="/jffs/addons/$SCRIPT_NAME.d"
@@ -376,14 +376,16 @@ Get_Guest_Name_Old()
 	echo "$theIFlabel Guest $theIFnumber"
 }
 
-Set_WiFi_Passphrase(){
+Set_WiFi_Passphrase()
+{
 	nvram set "${1}_wpa_psk"="$2"
 	nvram set "${1}_auth_mode_x"="psk2"
 	nvram set "${1}_akm"="psk2"
 	nvram commit
 }
 
-Iface_Manage(){
+Iface_Manage()
+{
 	case $1 in
 		create)
 			ifconfig "$2" "$(eval echo '$'"$(Get_Iface_Var "$2")"_IPADDR | cut -f1-3 -d".").$(nvram get lan_ipaddr | cut -f4 -d".")" netmask 255.255.255.0
@@ -460,38 +462,43 @@ Iface_BounceClients()
 	fi
 }
 
+##----------------------------------------##
+## Modified by Martinski W. [2026-Apr-15] ##
+##----------------------------------------##
 Auto_DNSMASQ()
 {
 	case $1 in
 		create)
-			if [ -f /jffs/scripts/dnsmasq.postconf ]
+			if [ -s /jffs/scripts/dnsmasq.postconf ]
 			then
-				STARTUPLINECOUNT=$(grep -c "# $SCRIPT_NAME" /jffs/scripts/dnsmasq.postconf)
-				STARTUPLINECOUNTEX=$(grep -cx "cat $DNSCONF >> /etc/dnsmasq.conf # $SCRIPT_NAME" /jffs/scripts/dnsmasq.postconf)
+				STARTUPLINECOUNT="$(grep -c "# $SCRIPT_NAME" /jffs/scripts/dnsmasq.postconf)"
+				STARTUPLINECOUNTEX="$(grep -cx "cat $DNSCONF >> /etc/dnsmasq.conf # $SCRIPT_NAME" /jffs/scripts/dnsmasq.postconf)"
 
-				if [ "$STARTUPLINECOUNT" -gt 1 ] || { [ "$STARTUPLINECOUNTEX" -eq 0 ] && [ "$STARTUPLINECOUNT" -gt 0 ]; }; then
+				if [ "$STARTUPLINECOUNT" -gt 1 ] || { [ "$STARTUPLINECOUNTEX" -eq 0 ] && [ "$STARTUPLINECOUNT" -gt 0 ]; }
+				then
 					sed -i -e '/# '"$SCRIPT_NAME"'/d' /jffs/scripts/dnsmasq.postconf
 				fi
-
-				if [ "$STARTUPLINECOUNTEX" -eq 0 ]; then
+				if [ "$STARTUPLINECOUNTEX" -eq 0 ]
+				then
 					echo "cat $DNSCONF >> /etc/dnsmasq.conf # $SCRIPT_NAME" >> /jffs/scripts/dnsmasq.postconf
 				fi
-
-				if [ "$(grep -c "NextDNS" /jffs/scripts/dnsmasq.postconf)" -gt 0 ]; then
+				if [ "$(grep -c "NextDNS" /jffs/scripts/dnsmasq.postconf)" -gt 0 ]
+				then
 					sed -i '/exit 0/d' /jffs/scripts/dnsmasq.postconf
 				fi
 			else
 				echo "#!/bin/sh" > /jffs/scripts/dnsmasq.postconf
-				echo "" >> /jffs/scripts/dnsmasq.postconf
+				echo >> /jffs/scripts/dnsmasq.postconf
 				echo "cat $DNSCONF >> /etc/dnsmasq.conf # $SCRIPT_NAME" >> /jffs/scripts/dnsmasq.postconf
-				chmod 0755 /jffs/scripts/dnsmasq.postconf
 			fi
+			chmod 0755 /jffs/scripts/dnsmasq.postconf
 		;;
 		delete)
-			if [ -f /jffs/scripts/dnsmasq.postconf ]; then
-				STARTUPLINECOUNT=$(grep -c "# $SCRIPT_NAME" /jffs/scripts/dnsmasq.postconf)
-
-				if [ "$STARTUPLINECOUNT" -gt 0 ]; then
+			if [ -s /jffs/scripts/dnsmasq.postconf ]
+			then
+				STARTUPLINECOUNT="$(grep -c "# $SCRIPT_NAME" /jffs/scripts/dnsmasq.postconf)"
+				if [ "$STARTUPLINECOUNT" -gt 0 ]
+				then
 					sed -i -e '/# '"$SCRIPT_NAME"'/d' /jffs/scripts/dnsmasq.postconf
 				fi
 			fi
@@ -499,32 +506,39 @@ Auto_DNSMASQ()
 	esac
 }
 
-Auto_ServiceEvent(){
+##----------------------------------------##
+## Modified by Martinski W. [2026-Apr-15] ##
+##----------------------------------------##
+Auto_ServiceEvent()
+{
 	case $1 in
 		create)
-			if [ -f /jffs/scripts/service-event ]; then
-				STARTUPLINECOUNT=$(grep -c '# '"$SCRIPT_NAME Guest Networks" /jffs/scripts/service-event)
-				STARTUPLINECOUNTEX=$(grep -cx 'if echo "$2" | /bin/grep -q "'"$SCRIPT_NAME"'" || { \[ "$1" = "restart" \] && \[ "$2" = "wireless" \]; }; then { /jffs/scripts/'"$SCRIPT_NAME"' service_event "$@" & }; fi # '"$SCRIPT_NAME Guest Networks" /jffs/scripts/service-event)
+			if [ -s /jffs/scripts/service-event ]
+			then
+				STARTUPLINECOUNT="$(grep -c '# '"$SCRIPT_NAME Guest Networks" /jffs/scripts/service-event)"
+				STARTUPLINECOUNTEX="$(grep -cx 'if echo "$2" | /bin/grep -q "'"$SCRIPT_NAME"'" || { \[ "$1" = "restart" \] && \[ "$2" = "wireless" \]; }; then { /jffs/scripts/'"$SCRIPT_NAME"' service_event "$@" & }; fi # '"$SCRIPT_NAME Guest Networks" /jffs/scripts/service-event)"
 
-				if [ "$STARTUPLINECOUNT" -gt 1 ] || { [ "$STARTUPLINECOUNTEX" -eq 0 ] && [ "$STARTUPLINECOUNT" -gt 0 ]; }; then
+				if [ "$STARTUPLINECOUNT" -gt 1 ] || { [ "$STARTUPLINECOUNTEX" -eq 0 ] && [ "$STARTUPLINECOUNT" -gt 0 ]; }
+				then
 					sed -i -e '/# '"$SCRIPT_NAME"' Guest Networks/d' /jffs/scripts/service-event
 				fi
-
-				if [ "$STARTUPLINECOUNTEX" -eq 0 ]; then
+				if [ "$STARTUPLINECOUNTEX" -eq 0 ]
+				then
 					echo 'if echo "$2" | /bin/grep -q "'"$SCRIPT_NAME"'" || { [ "$1" = "restart" ] && [ "$2" = "wireless" ]; }; then { /jffs/scripts/'"$SCRIPT_NAME"' service_event "$@" & }; fi # '"$SCRIPT_NAME Guest Networks" >> /jffs/scripts/service-event
 				fi
 			else
 				echo "#!/bin/sh" > /jffs/scripts/service-event
-				echo "" >> /jffs/scripts/service-event
+				echo >> /jffs/scripts/service-event
 				echo 'if echo "$2" | /bin/grep -q "'"$SCRIPT_NAME"'" || { [ "$1" = "restart" ] && [ "$2" = "wireless" ]; }; then { /jffs/scripts/'"$SCRIPT_NAME"' service_event "$@" & }; fi # '"$SCRIPT_NAME Guest Networks" >> /jffs/scripts/service-event
-				chmod 0755 /jffs/scripts/service-event
 			fi
+			chmod 0755 /jffs/scripts/service-event
 		;;
 		delete)
-			if [ -f /jffs/scripts/service-event ]; then
-				STARTUPLINECOUNT=$(grep -c '# '"$SCRIPT_NAME"' Guest Networks' /jffs/scripts/service-event)
-
-				if [ "$STARTUPLINECOUNT" -gt 0 ]; then
+			if [ -s /jffs/scripts/service-event ]
+			then
+				STARTUPLINECOUNT="$(grep -c '# '"$SCRIPT_NAME"' Guest Networks' /jffs/scripts/service-event)"
+				if [ "$STARTUPLINECOUNT" -gt 0 ]
+				then
 					sed -i -e '/# '"$SCRIPT_NAME"' Guest Networks/d' /jffs/scripts/service-event
 				fi
 			fi
@@ -532,32 +546,39 @@ Auto_ServiceEvent(){
 	esac
 }
 
-Auto_Startup(){
+##----------------------------------------##
+## Modified by Martinski W. [2026-Apr-15] ##
+##----------------------------------------##
+Auto_Startup()
+{
 	case $1 in
 		create)
-			if [ -f /jffs/scripts/firewall-start ]; then
-				STARTUPLINECOUNT=$(grep -c '# '"$SCRIPT_NAME"' Guest Networks' /jffs/scripts/firewall-start)
-				STARTUPLINECOUNTEX=$(grep -cx "/jffs/scripts/$SCRIPT_NAME runnow & # $SCRIPT_NAME Guest Networks" /jffs/scripts/firewall-start)
+			if [ -s /jffs/scripts/firewall-start ]
+			then
+				STARTUPLINECOUNT="$(grep -c '# '"$SCRIPT_NAME"' Guest Networks' /jffs/scripts/firewall-start)"
+				STARTUPLINECOUNTEX="$(grep -cx "/jffs/scripts/$SCRIPT_NAME runnow & # $SCRIPT_NAME Guest Networks" /jffs/scripts/firewall-start)"
 
-				if [ "$STARTUPLINECOUNT" -gt 1 ] || { [ "$STARTUPLINECOUNTEX" -eq 0 ] && [ "$STARTUPLINECOUNT" -gt 0 ]; }; then
+				if [ "$STARTUPLINECOUNT" -gt 1 ] || { [ "$STARTUPLINECOUNTEX" -eq 0 ] && [ "$STARTUPLINECOUNT" -gt 0 ]; }
+				then
 					sed -i -e '/# '"$SCRIPT_NAME"' Guest Networks/d' /jffs/scripts/firewall-start
 				fi
-
-				if [ "$STARTUPLINECOUNTEX" -eq 0 ]; then
+				if [ "$STARTUPLINECOUNTEX" -eq 0 ]
+				then
 					echo "/jffs/scripts/$SCRIPT_NAME runnow & # $SCRIPT_NAME Guest Networks" >> /jffs/scripts/firewall-start
 				fi
 			else
 				echo "#!/bin/sh" > /jffs/scripts/firewall-start
-				echo "" >> /jffs/scripts/firewall-start
+				echo >> /jffs/scripts/firewall-start
 				echo "/jffs/scripts/$SCRIPT_NAME runnow & # $SCRIPT_NAME Guest Networks" >> /jffs/scripts/firewall-start
-				chmod 0755 /jffs/scripts/firewall-start
 			fi
+			chmod 0755 /jffs/scripts/firewall-start
 		;;
 		delete)
-			if [ -f /jffs/scripts/firewall-start ]; then
-				STARTUPLINECOUNT=$(grep -c '# '"$SCRIPT_NAME"' Guest Networks' /jffs/scripts/firewall-start)
-
-				if [ "$STARTUPLINECOUNT" -gt 0 ]; then
+			if [ -s /jffs/scripts/firewall-start ]
+			then
+				STARTUPLINECOUNT="$(grep -c '# '"$SCRIPT_NAME"' Guest Networks' /jffs/scripts/firewall-start)"
+				if [ "$STARTUPLINECOUNT" -gt 0 ]
+				then
 					sed -i -e '/# '"$SCRIPT_NAME"' Guest Networks/d' /jffs/scripts/firewall-start
 				fi
 			fi
@@ -565,79 +586,95 @@ Auto_Startup(){
 	esac
 }
 
-Auto_ServiceEventEnd(){
+##----------------------------------------##
+## Modified by Martinski W. [2026-Apr-15] ##
+##----------------------------------------##
+Auto_ServiceEventEnd()
+{
 	case $1 in
 		create)
-			if [ -f /jffs/scripts/firewall-start ]; then
-				STARTUPLINECOUNT=$(grep -c '# '"$SCRIPT_NAME"' Guest Networks' /jffs/scripts/firewall-start)
-
-				if [ "$STARTUPLINECOUNT" -gt 0 ]; then
+			if [ -s /jffs/scripts/firewall-start ]
+			then
+				STARTUPLINECOUNT="$(grep -c '# '"$SCRIPT_NAME"' Guest Networks' /jffs/scripts/firewall-start)"
+				if [ "$STARTUPLINECOUNT" -gt 0 ]
+				then
 					sed -i -e '/# '"$SCRIPT_NAME"' Guest Networks/d' /jffs/scripts/firewall-start
 				fi
 			fi
-			if [ -f /jffs/scripts/service-event-end ]; then
-				STARTUPLINECOUNT=$(grep -c '# '"$SCRIPT_NAME Guest Networks" /jffs/scripts/service-event-end)
-				STARTUPLINECOUNTEX=$(grep -cx 'if { \[ "$1" = "start" \] || \[ "$1" = "restart" \]; } && \[ "$2" = "firewall" \]; then { /jffs/scripts/'"$SCRIPT_NAME"' runnow & }; fi # '"$SCRIPT_NAME Guest Networks" /jffs/scripts/service-event-end)
+			if [ -s /jffs/scripts/service-event-end ]
+			then
+				STARTUPLINECOUNT="$(grep -c '# '"$SCRIPT_NAME Guest Networks" /jffs/scripts/service-event-end)"
+				STARTUPLINECOUNTEX="$(grep -cx 'if { \[ "$1" = "start" \] || \[ "$1" = "restart" \]; } && \[ "$2" = "firewall" \]; then { /jffs/scripts/'"$SCRIPT_NAME"' runnow & }; fi # '"$SCRIPT_NAME Guest Networks" /jffs/scripts/service-event-end)"
 
-				if [ "$STARTUPLINECOUNT" -gt 1 ] || { [ "$STARTUPLINECOUNTEX" -eq 0 ] && [ "$STARTUPLINECOUNT" -gt 0 ]; }; then
+				if [ "$STARTUPLINECOUNT" -gt 1 ] || { [ "$STARTUPLINECOUNTEX" -eq 0 ] && [ "$STARTUPLINECOUNT" -gt 0 ]; }
+				then
 					sed -i -e '/# '"$SCRIPT_NAME"' Guest Networks/d' /jffs/scripts/service-event-end
 				fi
-
-				if [ "$STARTUPLINECOUNTEX" -eq 0 ]; then
+				if [ "$STARTUPLINECOUNTEX" -eq 0 ]
+				then
 					echo 'if { [ "$1" = "start" ] || [ "$1" = "restart" ]; } && [ "$2" = "firewall" ]; then { /jffs/scripts/'"$SCRIPT_NAME"' runnow & }; fi # '"$SCRIPT_NAME Guest Networks" >> /jffs/scripts/service-event-end
 				fi
 			else
 				echo "#!/bin/sh" > /jffs/scripts/service-event-end
-				echo "" >> /jffs/scripts/service-event-end
+				echo >> /jffs/scripts/service-event-end
 				echo 'if { [ "$1" = "start" ] || [ "$1" = "restart" ]; } && [ "$2" = "firewall" ]; then { /jffs/scripts/'"$SCRIPT_NAME"' runnow & }; fi # '"$SCRIPT_NAME Guest Networks" >> /jffs/scripts/service-event-end
-				chmod 0755 /jffs/scripts/service-event-end
 			fi
+			chmod 0755 /jffs/scripts/service-event-end
 		;;
 		delete)
-			if [ -f /jffs/scripts/firewall-start ]; then
-				STARTUPLINECOUNT=$(grep -c '# '"$SCRIPT_NAME"' Guest Networks' /jffs/scripts/firewall-start)
-
-				if [ "$STARTUPLINECOUNT" -gt 0 ]; then
+			if [ -s /jffs/scripts/firewall-start ]
+			then
+				STARTUPLINECOUNT="$(grep -c '# '"$SCRIPT_NAME"' Guest Networks' /jffs/scripts/firewall-start)"
+				if [ "$STARTUPLINECOUNT" -gt 0 ]
+				then
 					sed -i -e '/# '"$SCRIPT_NAME"' Guest Networks/d' /jffs/scripts/firewall-start
 				fi
 			fi
-			if [ -f /jffs/scripts/service-event ]; then
-				STARTUPLINECOUNT=$(grep -c '# '"$SCRIPT_NAME"' Guest Networks' /jffs/scripts/service-event)
-
-				if [ "$STARTUPLINECOUNT" -gt 0 ]; then
-					sed -i -e '/# '"$SCRIPT_NAME"' Guest Networks/d' /jffs/scripts/service-event
+			if [ -s /jffs/scripts/service-event-end ]
+			then
+				STARTUPLINECOUNT="$(grep -c '# '"$SCRIPT_NAME"' Guest Networks' /jffs/scripts/service-event-end)"
+				if [ "$STARTUPLINECOUNT" -gt 0 ]
+				then
+					sed -i -e '/# '"$SCRIPT_NAME"' Guest Networks/d' /jffs/scripts/service-event-end
 				fi
 			fi
 		;;
 	esac
 }
 
-Auto_ServiceStart(){
+##----------------------------------------##
+## Modified by Martinski W. [2026-Apr-15] ##
+##----------------------------------------##
+Auto_ServiceStart()
+{
 	case $1 in
 		create)
-			if [ -f /jffs/scripts/services-start ]; then
-				STARTUPLINECOUNT=$(grep -c '# '"$SCRIPT_NAME" /jffs/scripts/services-start)
-				STARTUPLINECOUNTEX=$(grep -cx "/jffs/scripts/$SCRIPT_NAME startup & # $SCRIPT_NAME" /jffs/scripts/services-start)
+			if [ -s /jffs/scripts/services-start ]
+			then
+				STARTUPLINECOUNT="$(grep -c '# '"$SCRIPT_NAME" /jffs/scripts/services-start)"
+				STARTUPLINECOUNTEX="$(grep -cx "/jffs/scripts/$SCRIPT_NAME startup & # $SCRIPT_NAME" /jffs/scripts/services-start)"
 
-				if [ "$STARTUPLINECOUNT" -gt 1 ] || { [ "$STARTUPLINECOUNTEX" -eq 0 ] && [ "$STARTUPLINECOUNT" -gt 0 ]; }; then
+				if [ "$STARTUPLINECOUNT" -gt 1 ] || { [ "$STARTUPLINECOUNTEX" -eq 0 ] && [ "$STARTUPLINECOUNT" -gt 0 ]; }
+				then
 					sed -i -e '/# '"$SCRIPT_NAME"'/d' /jffs/scripts/services-start
 				fi
-
-				if [ "$STARTUPLINECOUNTEX" -eq 0 ]; then
+				if [ "$STARTUPLINECOUNTEX" -eq 0 ]
+				then
 					echo "/jffs/scripts/$SCRIPT_NAME startup & # $SCRIPT_NAME" >> /jffs/scripts/services-start
 				fi
 			else
 				echo "#!/bin/sh" > /jffs/scripts/services-start
-				echo "" >> /jffs/scripts/services-start
+				echo >> /jffs/scripts/services-start
 				echo "/jffs/scripts/$SCRIPT_NAME startup & # $SCRIPT_NAME" >> /jffs/scripts/services-start
-				chmod 0755 /jffs/scripts/services-start
 			fi
+			chmod 0755 /jffs/scripts/services-start
 		;;
 		delete)
-			if [ -f /jffs/scripts/services-start ]
+			if [ -s /jffs/scripts/services-start ]
 			then
 				STARTUPLINECOUNT="$(grep -c '# '"$SCRIPT_NAME" /jffs/scripts/services-start)"
-				if [ "$STARTUPLINECOUNT" -gt 0 ]; then
+				if [ "$STARTUPLINECOUNT" -gt 0 ]
+				then
 					sed -i -e '/# '"$SCRIPT_NAME"'/d' /jffs/scripts/services-start
 				fi
 			fi
@@ -645,11 +682,14 @@ Auto_ServiceStart(){
 	esac
 }
 
+##----------------------------------------##
+## Modified by Martinski W. [2026-Apr-15] ##
+##----------------------------------------##
 Auto_OpenVPNEvent()
 {
 	case $1 in
 		create)
-			if [ -f /jffs/scripts/openvpn-event ]
+			if [ -s /jffs/scripts/openvpn-event ]
 			then
 				STARTUPLINECOUNT="$(grep -c '# '"$SCRIPT_NAME" /jffs/scripts/openvpn-event)"
 				STARTUPLINECOUNTEX="$(grep -cx "/jffs/scripts/$SCRIPT_NAME openvpn "'$1 $script_type & # '"$SCRIPT_NAME" /jffs/scripts/openvpn-event)"
@@ -658,23 +698,23 @@ Auto_OpenVPNEvent()
 				then
 					sed -i -e '/# '"$SCRIPT_NAME"'/d' /jffs/scripts/openvpn-event
 				fi
-
 				if [ "$STARTUPLINECOUNTEX" -eq 0 ]
 				then
 					sed -i '2 i /jffs/scripts/'"$SCRIPT_NAME"' openvpn $1 $script_type & # '"$SCRIPT_NAME" /jffs/scripts/openvpn-event
 				fi
 			else
 				echo "#!/bin/sh" > /jffs/scripts/openvpn-event
-				echo "" >> /jffs/scripts/openvpn-event
+				echo >> /jffs/scripts/openvpn-event
 				echo "/jffs/scripts/$SCRIPT_NAME openvpn "'$1 $script_type & # '"$SCRIPT_NAME" >> /jffs/scripts/openvpn-event
-				chmod 0755 /jffs/scripts/openvpn-event
 			fi
+			chmod 0755 /jffs/scripts/openvpn-event
 		;;
 		delete)
-			if [ -f /jffs/scripts/openvpn-event ]
+			if [ -s /jffs/scripts/openvpn-event ]
 			then
 				STARTUPLINECOUNT="$(grep -c '# '"$SCRIPT_NAME" /jffs/scripts/openvpn-event)"
-				if [ "$STARTUPLINECOUNT" -gt 0 ]; then
+				if [ "$STARTUPLINECOUNT" -gt 0 ]
+				then
 					sed -i -e '/# '"$SCRIPT_NAME"'/d' /jffs/scripts/openvpn-event
 				fi
 			fi
@@ -687,54 +727,60 @@ Auto_Cron()
 	case $1 in
 		create)
 			STARTUPLINECOUNT="$(cru l | grep -c "$SCRIPT_NAME")"
-			if [ "$STARTUPLINECOUNT" -eq 0 ]; then
+			if [ "$STARTUPLINECOUNT" -eq 0 ]
+			then
 				cru a "$SCRIPT_NAME" "*/10 * * * * /jffs/scripts/$SCRIPT_NAME check"
 			fi
 		;;
 		delete)
 			STARTUPLINECOUNT="$(cru l | grep -c "$SCRIPT_NAME")"
-			if [ "$STARTUPLINECOUNT" -gt 0 ]; then
+			if [ "$STARTUPLINECOUNT" -gt 0 ]
+			then
 				cru d "$SCRIPT_NAME"
 			fi
 		;;
 	esac
 }
 
+##----------------------------------------##
+## Modified by Martinski W. [2026-Apr-15] ##
+##----------------------------------------##
 Avahi_Conf()
 {
 	case $1 in
 		create)
-			if [ -f /jffs/scripts/avahi-daemon.postconf ]
+			if [ -s /jffs/scripts/avahi-daemon.postconf ]
 			then
+				chmod 0755 /jffs/scripts/avahi-daemon.postconf
 				STARTUPLINECOUNT="$(grep -c "$SCRIPT_NAME" /jffs/scripts/avahi-daemon.postconf)"
-
 				if [ "$STARTUPLINECOUNT" -eq 0 ]
 				then
 					{
-					echo 'echo "" >> "$1" # '"$SCRIPT_NAME"
-					echo 'echo "[reflector]" >> "$1" # '"$SCRIPT_NAME"
-					echo 'echo "enable-reflector=yes" >> "$1" # '"$SCRIPT_NAME"
-					echo "sed -i '/^\[Server\]/a cache-entries-max=0' "'"$1" # '"$SCRIPT_NAME"
+					   echo 'echo "" >> "$1" # '"$SCRIPT_NAME"
+					   echo 'echo "[reflector]" >> "$1" # '"$SCRIPT_NAME"
+					   echo 'echo "enable-reflector=yes" >> "$1" # '"$SCRIPT_NAME"
+					   echo "sed -i '/^\[Server\]/a cache-entries-max=0' "'"$1" # '"$SCRIPT_NAME"
 					} >> /jffs/scripts/avahi-daemon.postconf
 					service restart_mdns >/dev/null 2>&1
 				fi
 			else
 				{
-				echo '#!/bin/sh'
-				echo 'echo "" >> "$1" # '"$SCRIPT_NAME"
-				echo 'echo "[reflector]" >> "$1" # '"$SCRIPT_NAME"
-				echo 'echo "enable-reflector=yes" >> "$1" # '"$SCRIPT_NAME"
-				echo "sed -i '/^\[Server\]/a cache-entries-max=0' "'"$1" # '"$SCRIPT_NAME"
+				   echo '#!/bin/sh'
+				   echo 'echo "" >> "$1" # '"$SCRIPT_NAME"
+				   echo 'echo "[reflector]" >> "$1" # '"$SCRIPT_NAME"
+				   echo 'echo "enable-reflector=yes" >> "$1" # '"$SCRIPT_NAME"
+				   echo "sed -i '/^\[Server\]/a cache-entries-max=0' "'"$1" # '"$SCRIPT_NAME"
 				} > /jffs/scripts/avahi-daemon.postconf
 				chmod 0755 /jffs/scripts/avahi-daemon.postconf
 				service restart_mdns >/dev/null 2>&1
 			fi
 		;;
 		delete)
-			if [ -f /jffs/scripts/avahi-daemon.postconf ]
+			if [ -s /jffs/scripts/avahi-daemon.postconf ]
 			then
 				STARTUPLINECOUNT="$(grep -c "$SCRIPT_NAME" /jffs/scripts/avahi-daemon.postconf)"
-				if [ "$STARTUPLINECOUNT" -gt 0 ]; then
+				if [ "$STARTUPLINECOUNT" -gt 0 ]
+				then
 					sed -i -e '/# '"$SCRIPT_NAME"'/d' /jffs/scripts/avahi-daemon.postconf
 					service restart_mdns >/dev/null 2>&1
 				fi
@@ -4076,7 +4122,6 @@ case "$1" in
 		if ! Conf_Exists; then
 			exit 1
 		fi
-
 		if ! Conf_Validate; then
 			exit 1
 		fi
