@@ -17,7 +17,7 @@
 ##       Guest Network DHCP script and for       ##
 ##            AsusWRT-Merlin firmware            ##
 ###################################################
-# Last Modified: 2026-Apr-11
+# Last Modified: 2026-Apr-15
 #--------------------------------------------------
 
 ######       Shellcheck directives     ######
@@ -41,9 +41,9 @@
 ### Start of script variables ###
 readonly SCRIPT_NAME="YazFi"
 readonly SCRIPT_CONF="/jffs/addons/$SCRIPT_NAME.d/config"
-readonly YAZFI_VERSION="v4.4.11"
-readonly SCRIPT_VERSION="v4.4.11"
-readonly SCRIPT_VERSTAG="26041104"
+readonly YAZFI_VERSION="v4.4.12"
+readonly SCRIPT_VERSION="v4.4.12"
+readonly SCRIPT_VERSTAG="26041523"
 SCRIPT_BRANCH="develop"
 SCRIPT_REPO="https://raw.githubusercontent.com/AMTM-OSR/$SCRIPT_NAME/$SCRIPT_BRANCH"
 readonly SCRIPT_DIR="/jffs/addons/$SCRIPT_NAME.d"
@@ -57,17 +57,19 @@ readonly TEMP_MENU_TREE="/tmp/menuTree.js"
 ### End of script variables ###
 
 ### Start of output format variables ###
-readonly CRIT="\\e[41m"
-readonly ERR="\\e[31m"
-readonly WARN="\\e[33m"
-readonly PASS="\\e[32m"
-readonly BOLD="\\e[1m"
-readonly SETTING="${BOLD}\\e[36m"
-readonly CLEARFORMAT="\\e[0m"
+readonly CRIT="\e[41m"
+readonly ERR="\e[31m"
+readonly WARN="\e[33m"
+readonly PASS="\e[32m"
+readonly BOLD="\e[1m"
+readonly SETTING="${BOLD}\e[36m"
+readonly CLEARFORMAT="\e[0m"
 readonly CLRct="\e[0m"
 readonly REDct="\e[1;31m"
 readonly GRNct="\e[1;32m"
 readonly MGNTct="\e[1;35m"
+readonly GRAYct="\e[0;37m"
+readonly GRAYEDct="\e[0;30;47m"
 ### End of output format variables ###
 
 ### Start of router environment variables ###
@@ -376,14 +378,16 @@ Get_Guest_Name_Old()
 	echo "$theIFlabel Guest $theIFnumber"
 }
 
-Set_WiFi_Passphrase(){
+Set_WiFi_Passphrase()
+{
 	nvram set "${1}_wpa_psk"="$2"
 	nvram set "${1}_auth_mode_x"="psk2"
 	nvram set "${1}_akm"="psk2"
 	nvram commit
 }
 
-Iface_Manage(){
+Iface_Manage()
+{
 	case $1 in
 		create)
 			ifconfig "$2" "$(eval echo '$'"$(Get_Iface_Var "$2")"_IPADDR | cut -f1-3 -d".").$(nvram get lan_ipaddr | cut -f4 -d".")" netmask 255.255.255.0
@@ -460,38 +464,43 @@ Iface_BounceClients()
 	fi
 }
 
+##----------------------------------------##
+## Modified by Martinski W. [2026-Apr-15] ##
+##----------------------------------------##
 Auto_DNSMASQ()
 {
 	case $1 in
 		create)
-			if [ -f /jffs/scripts/dnsmasq.postconf ]
+			if [ -s /jffs/scripts/dnsmasq.postconf ]
 			then
-				STARTUPLINECOUNT=$(grep -c "# $SCRIPT_NAME" /jffs/scripts/dnsmasq.postconf)
-				STARTUPLINECOUNTEX=$(grep -cx "cat $DNSCONF >> /etc/dnsmasq.conf # $SCRIPT_NAME" /jffs/scripts/dnsmasq.postconf)
+				STARTUPLINECOUNT="$(grep -c "# $SCRIPT_NAME" /jffs/scripts/dnsmasq.postconf)"
+				STARTUPLINECOUNTEX="$(grep -cx "cat $DNSCONF >> /etc/dnsmasq.conf # $SCRIPT_NAME" /jffs/scripts/dnsmasq.postconf)"
 
-				if [ "$STARTUPLINECOUNT" -gt 1 ] || { [ "$STARTUPLINECOUNTEX" -eq 0 ] && [ "$STARTUPLINECOUNT" -gt 0 ]; }; then
+				if [ "$STARTUPLINECOUNT" -gt 1 ] || { [ "$STARTUPLINECOUNTEX" -eq 0 ] && [ "$STARTUPLINECOUNT" -gt 0 ]; }
+				then
 					sed -i -e '/# '"$SCRIPT_NAME"'/d' /jffs/scripts/dnsmasq.postconf
 				fi
-
-				if [ "$STARTUPLINECOUNTEX" -eq 0 ]; then
+				if [ "$STARTUPLINECOUNTEX" -eq 0 ]
+				then
 					echo "cat $DNSCONF >> /etc/dnsmasq.conf # $SCRIPT_NAME" >> /jffs/scripts/dnsmasq.postconf
 				fi
-
-				if [ "$(grep -c "NextDNS" /jffs/scripts/dnsmasq.postconf)" -gt 0 ]; then
+				if [ "$(grep -c "NextDNS" /jffs/scripts/dnsmasq.postconf)" -gt 0 ]
+				then
 					sed -i '/exit 0/d' /jffs/scripts/dnsmasq.postconf
 				fi
 			else
 				echo "#!/bin/sh" > /jffs/scripts/dnsmasq.postconf
-				echo "" >> /jffs/scripts/dnsmasq.postconf
+				echo >> /jffs/scripts/dnsmasq.postconf
 				echo "cat $DNSCONF >> /etc/dnsmasq.conf # $SCRIPT_NAME" >> /jffs/scripts/dnsmasq.postconf
-				chmod 0755 /jffs/scripts/dnsmasq.postconf
 			fi
+			chmod 0755 /jffs/scripts/dnsmasq.postconf
 		;;
 		delete)
-			if [ -f /jffs/scripts/dnsmasq.postconf ]; then
-				STARTUPLINECOUNT=$(grep -c "# $SCRIPT_NAME" /jffs/scripts/dnsmasq.postconf)
-
-				if [ "$STARTUPLINECOUNT" -gt 0 ]; then
+			if [ -s /jffs/scripts/dnsmasq.postconf ]
+			then
+				STARTUPLINECOUNT="$(grep -c "# $SCRIPT_NAME" /jffs/scripts/dnsmasq.postconf)"
+				if [ "$STARTUPLINECOUNT" -gt 0 ]
+				then
 					sed -i -e '/# '"$SCRIPT_NAME"'/d' /jffs/scripts/dnsmasq.postconf
 				fi
 			fi
@@ -499,32 +508,39 @@ Auto_DNSMASQ()
 	esac
 }
 
-Auto_ServiceEvent(){
+##----------------------------------------##
+## Modified by Martinski W. [2026-Apr-15] ##
+##----------------------------------------##
+Auto_ServiceEvent()
+{
 	case $1 in
 		create)
-			if [ -f /jffs/scripts/service-event ]; then
-				STARTUPLINECOUNT=$(grep -c '# '"$SCRIPT_NAME Guest Networks" /jffs/scripts/service-event)
-				STARTUPLINECOUNTEX=$(grep -cx 'if echo "$2" | /bin/grep -q "'"$SCRIPT_NAME"'" || { \[ "$1" = "restart" \] && \[ "$2" = "wireless" \]; }; then { /jffs/scripts/'"$SCRIPT_NAME"' service_event "$@" & }; fi # '"$SCRIPT_NAME Guest Networks" /jffs/scripts/service-event)
+			if [ -s /jffs/scripts/service-event ]
+			then
+				STARTUPLINECOUNT="$(grep -c '# '"$SCRIPT_NAME Guest Networks" /jffs/scripts/service-event)"
+				STARTUPLINECOUNTEX="$(grep -cx 'if echo "$2" | /bin/grep -q "'"$SCRIPT_NAME"'" || { \[ "$1" = "restart" \] && \[ "$2" = "wireless" \]; }; then { /jffs/scripts/'"$SCRIPT_NAME"' service_event "$@" & }; fi # '"$SCRIPT_NAME Guest Networks" /jffs/scripts/service-event)"
 
-				if [ "$STARTUPLINECOUNT" -gt 1 ] || { [ "$STARTUPLINECOUNTEX" -eq 0 ] && [ "$STARTUPLINECOUNT" -gt 0 ]; }; then
+				if [ "$STARTUPLINECOUNT" -gt 1 ] || { [ "$STARTUPLINECOUNTEX" -eq 0 ] && [ "$STARTUPLINECOUNT" -gt 0 ]; }
+				then
 					sed -i -e '/# '"$SCRIPT_NAME"' Guest Networks/d' /jffs/scripts/service-event
 				fi
-
-				if [ "$STARTUPLINECOUNTEX" -eq 0 ]; then
+				if [ "$STARTUPLINECOUNTEX" -eq 0 ]
+				then
 					echo 'if echo "$2" | /bin/grep -q "'"$SCRIPT_NAME"'" || { [ "$1" = "restart" ] && [ "$2" = "wireless" ]; }; then { /jffs/scripts/'"$SCRIPT_NAME"' service_event "$@" & }; fi # '"$SCRIPT_NAME Guest Networks" >> /jffs/scripts/service-event
 				fi
 			else
 				echo "#!/bin/sh" > /jffs/scripts/service-event
-				echo "" >> /jffs/scripts/service-event
+				echo >> /jffs/scripts/service-event
 				echo 'if echo "$2" | /bin/grep -q "'"$SCRIPT_NAME"'" || { [ "$1" = "restart" ] && [ "$2" = "wireless" ]; }; then { /jffs/scripts/'"$SCRIPT_NAME"' service_event "$@" & }; fi # '"$SCRIPT_NAME Guest Networks" >> /jffs/scripts/service-event
-				chmod 0755 /jffs/scripts/service-event
 			fi
+			chmod 0755 /jffs/scripts/service-event
 		;;
 		delete)
-			if [ -f /jffs/scripts/service-event ]; then
-				STARTUPLINECOUNT=$(grep -c '# '"$SCRIPT_NAME"' Guest Networks' /jffs/scripts/service-event)
-
-				if [ "$STARTUPLINECOUNT" -gt 0 ]; then
+			if [ -s /jffs/scripts/service-event ]
+			then
+				STARTUPLINECOUNT="$(grep -c '# '"$SCRIPT_NAME"' Guest Networks' /jffs/scripts/service-event)"
+				if [ "$STARTUPLINECOUNT" -gt 0 ]
+				then
 					sed -i -e '/# '"$SCRIPT_NAME"' Guest Networks/d' /jffs/scripts/service-event
 				fi
 			fi
@@ -532,32 +548,39 @@ Auto_ServiceEvent(){
 	esac
 }
 
-Auto_Startup(){
+##----------------------------------------##
+## Modified by Martinski W. [2026-Apr-15] ##
+##----------------------------------------##
+Auto_Startup()
+{
 	case $1 in
 		create)
-			if [ -f /jffs/scripts/firewall-start ]; then
-				STARTUPLINECOUNT=$(grep -c '# '"$SCRIPT_NAME"' Guest Networks' /jffs/scripts/firewall-start)
-				STARTUPLINECOUNTEX=$(grep -cx "/jffs/scripts/$SCRIPT_NAME runnow & # $SCRIPT_NAME Guest Networks" /jffs/scripts/firewall-start)
+			if [ -s /jffs/scripts/firewall-start ]
+			then
+				STARTUPLINECOUNT="$(grep -c '# '"$SCRIPT_NAME"' Guest Networks' /jffs/scripts/firewall-start)"
+				STARTUPLINECOUNTEX="$(grep -cx "/jffs/scripts/$SCRIPT_NAME runnow & # $SCRIPT_NAME Guest Networks" /jffs/scripts/firewall-start)"
 
-				if [ "$STARTUPLINECOUNT" -gt 1 ] || { [ "$STARTUPLINECOUNTEX" -eq 0 ] && [ "$STARTUPLINECOUNT" -gt 0 ]; }; then
+				if [ "$STARTUPLINECOUNT" -gt 1 ] || { [ "$STARTUPLINECOUNTEX" -eq 0 ] && [ "$STARTUPLINECOUNT" -gt 0 ]; }
+				then
 					sed -i -e '/# '"$SCRIPT_NAME"' Guest Networks/d' /jffs/scripts/firewall-start
 				fi
-
-				if [ "$STARTUPLINECOUNTEX" -eq 0 ]; then
+				if [ "$STARTUPLINECOUNTEX" -eq 0 ]
+				then
 					echo "/jffs/scripts/$SCRIPT_NAME runnow & # $SCRIPT_NAME Guest Networks" >> /jffs/scripts/firewall-start
 				fi
 			else
 				echo "#!/bin/sh" > /jffs/scripts/firewall-start
-				echo "" >> /jffs/scripts/firewall-start
+				echo >> /jffs/scripts/firewall-start
 				echo "/jffs/scripts/$SCRIPT_NAME runnow & # $SCRIPT_NAME Guest Networks" >> /jffs/scripts/firewall-start
-				chmod 0755 /jffs/scripts/firewall-start
 			fi
+			chmod 0755 /jffs/scripts/firewall-start
 		;;
 		delete)
-			if [ -f /jffs/scripts/firewall-start ]; then
-				STARTUPLINECOUNT=$(grep -c '# '"$SCRIPT_NAME"' Guest Networks' /jffs/scripts/firewall-start)
-
-				if [ "$STARTUPLINECOUNT" -gt 0 ]; then
+			if [ -s /jffs/scripts/firewall-start ]
+			then
+				STARTUPLINECOUNT="$(grep -c '# '"$SCRIPT_NAME"' Guest Networks' /jffs/scripts/firewall-start)"
+				if [ "$STARTUPLINECOUNT" -gt 0 ]
+				then
 					sed -i -e '/# '"$SCRIPT_NAME"' Guest Networks/d' /jffs/scripts/firewall-start
 				fi
 			fi
@@ -565,79 +588,95 @@ Auto_Startup(){
 	esac
 }
 
-Auto_ServiceEventEnd(){
+##----------------------------------------##
+## Modified by Martinski W. [2026-Apr-15] ##
+##----------------------------------------##
+Auto_ServiceEventEnd()
+{
 	case $1 in
 		create)
-			if [ -f /jffs/scripts/firewall-start ]; then
-				STARTUPLINECOUNT=$(grep -c '# '"$SCRIPT_NAME"' Guest Networks' /jffs/scripts/firewall-start)
-
-				if [ "$STARTUPLINECOUNT" -gt 0 ]; then
+			if [ -s /jffs/scripts/firewall-start ]
+			then
+				STARTUPLINECOUNT="$(grep -c '# '"$SCRIPT_NAME"' Guest Networks' /jffs/scripts/firewall-start)"
+				if [ "$STARTUPLINECOUNT" -gt 0 ]
+				then
 					sed -i -e '/# '"$SCRIPT_NAME"' Guest Networks/d' /jffs/scripts/firewall-start
 				fi
 			fi
-			if [ -f /jffs/scripts/service-event-end ]; then
-				STARTUPLINECOUNT=$(grep -c '# '"$SCRIPT_NAME Guest Networks" /jffs/scripts/service-event-end)
-				STARTUPLINECOUNTEX=$(grep -cx 'if { \[ "$1" = "start" \] || \[ "$1" = "restart" \]; } && \[ "$2" = "firewall" \]; then { /jffs/scripts/'"$SCRIPT_NAME"' runnow & }; fi # '"$SCRIPT_NAME Guest Networks" /jffs/scripts/service-event-end)
+			if [ -s /jffs/scripts/service-event-end ]
+			then
+				STARTUPLINECOUNT="$(grep -c '# '"$SCRIPT_NAME Guest Networks" /jffs/scripts/service-event-end)"
+				STARTUPLINECOUNTEX="$(grep -cx 'if { \[ "$1" = "start" \] || \[ "$1" = "restart" \]; } && \[ "$2" = "firewall" \]; then { /jffs/scripts/'"$SCRIPT_NAME"' runnow & }; fi # '"$SCRIPT_NAME Guest Networks" /jffs/scripts/service-event-end)"
 
-				if [ "$STARTUPLINECOUNT" -gt 1 ] || { [ "$STARTUPLINECOUNTEX" -eq 0 ] && [ "$STARTUPLINECOUNT" -gt 0 ]; }; then
+				if [ "$STARTUPLINECOUNT" -gt 1 ] || { [ "$STARTUPLINECOUNTEX" -eq 0 ] && [ "$STARTUPLINECOUNT" -gt 0 ]; }
+				then
 					sed -i -e '/# '"$SCRIPT_NAME"' Guest Networks/d' /jffs/scripts/service-event-end
 				fi
-
-				if [ "$STARTUPLINECOUNTEX" -eq 0 ]; then
+				if [ "$STARTUPLINECOUNTEX" -eq 0 ]
+				then
 					echo 'if { [ "$1" = "start" ] || [ "$1" = "restart" ]; } && [ "$2" = "firewall" ]; then { /jffs/scripts/'"$SCRIPT_NAME"' runnow & }; fi # '"$SCRIPT_NAME Guest Networks" >> /jffs/scripts/service-event-end
 				fi
 			else
 				echo "#!/bin/sh" > /jffs/scripts/service-event-end
-				echo "" >> /jffs/scripts/service-event-end
+				echo >> /jffs/scripts/service-event-end
 				echo 'if { [ "$1" = "start" ] || [ "$1" = "restart" ]; } && [ "$2" = "firewall" ]; then { /jffs/scripts/'"$SCRIPT_NAME"' runnow & }; fi # '"$SCRIPT_NAME Guest Networks" >> /jffs/scripts/service-event-end
-				chmod 0755 /jffs/scripts/service-event-end
 			fi
+			chmod 0755 /jffs/scripts/service-event-end
 		;;
 		delete)
-			if [ -f /jffs/scripts/firewall-start ]; then
-				STARTUPLINECOUNT=$(grep -c '# '"$SCRIPT_NAME"' Guest Networks' /jffs/scripts/firewall-start)
-
-				if [ "$STARTUPLINECOUNT" -gt 0 ]; then
+			if [ -s /jffs/scripts/firewall-start ]
+			then
+				STARTUPLINECOUNT="$(grep -c '# '"$SCRIPT_NAME"' Guest Networks' /jffs/scripts/firewall-start)"
+				if [ "$STARTUPLINECOUNT" -gt 0 ]
+				then
 					sed -i -e '/# '"$SCRIPT_NAME"' Guest Networks/d' /jffs/scripts/firewall-start
 				fi
 			fi
-			if [ -f /jffs/scripts/service-event ]; then
-				STARTUPLINECOUNT=$(grep -c '# '"$SCRIPT_NAME"' Guest Networks' /jffs/scripts/service-event)
-
-				if [ "$STARTUPLINECOUNT" -gt 0 ]; then
-					sed -i -e '/# '"$SCRIPT_NAME"' Guest Networks/d' /jffs/scripts/service-event
+			if [ -s /jffs/scripts/service-event-end ]
+			then
+				STARTUPLINECOUNT="$(grep -c '# '"$SCRIPT_NAME"' Guest Networks' /jffs/scripts/service-event-end)"
+				if [ "$STARTUPLINECOUNT" -gt 0 ]
+				then
+					sed -i -e '/# '"$SCRIPT_NAME"' Guest Networks/d' /jffs/scripts/service-event-end
 				fi
 			fi
 		;;
 	esac
 }
 
-Auto_ServiceStart(){
+##----------------------------------------##
+## Modified by Martinski W. [2026-Apr-15] ##
+##----------------------------------------##
+Auto_ServiceStart()
+{
 	case $1 in
 		create)
-			if [ -f /jffs/scripts/services-start ]; then
-				STARTUPLINECOUNT=$(grep -c '# '"$SCRIPT_NAME" /jffs/scripts/services-start)
-				STARTUPLINECOUNTEX=$(grep -cx "/jffs/scripts/$SCRIPT_NAME startup & # $SCRIPT_NAME" /jffs/scripts/services-start)
+			if [ -s /jffs/scripts/services-start ]
+			then
+				STARTUPLINECOUNT="$(grep -c '# '"$SCRIPT_NAME" /jffs/scripts/services-start)"
+				STARTUPLINECOUNTEX="$(grep -cx "/jffs/scripts/$SCRIPT_NAME startup & # $SCRIPT_NAME" /jffs/scripts/services-start)"
 
-				if [ "$STARTUPLINECOUNT" -gt 1 ] || { [ "$STARTUPLINECOUNTEX" -eq 0 ] && [ "$STARTUPLINECOUNT" -gt 0 ]; }; then
+				if [ "$STARTUPLINECOUNT" -gt 1 ] || { [ "$STARTUPLINECOUNTEX" -eq 0 ] && [ "$STARTUPLINECOUNT" -gt 0 ]; }
+				then
 					sed -i -e '/# '"$SCRIPT_NAME"'/d' /jffs/scripts/services-start
 				fi
-
-				if [ "$STARTUPLINECOUNTEX" -eq 0 ]; then
+				if [ "$STARTUPLINECOUNTEX" -eq 0 ]
+				then
 					echo "/jffs/scripts/$SCRIPT_NAME startup & # $SCRIPT_NAME" >> /jffs/scripts/services-start
 				fi
 			else
 				echo "#!/bin/sh" > /jffs/scripts/services-start
-				echo "" >> /jffs/scripts/services-start
+				echo >> /jffs/scripts/services-start
 				echo "/jffs/scripts/$SCRIPT_NAME startup & # $SCRIPT_NAME" >> /jffs/scripts/services-start
-				chmod 0755 /jffs/scripts/services-start
 			fi
+			chmod 0755 /jffs/scripts/services-start
 		;;
 		delete)
-			if [ -f /jffs/scripts/services-start ]
+			if [ -s /jffs/scripts/services-start ]
 			then
 				STARTUPLINECOUNT="$(grep -c '# '"$SCRIPT_NAME" /jffs/scripts/services-start)"
-				if [ "$STARTUPLINECOUNT" -gt 0 ]; then
+				if [ "$STARTUPLINECOUNT" -gt 0 ]
+				then
 					sed -i -e '/# '"$SCRIPT_NAME"'/d' /jffs/scripts/services-start
 				fi
 			fi
@@ -645,11 +684,14 @@ Auto_ServiceStart(){
 	esac
 }
 
+##----------------------------------------##
+## Modified by Martinski W. [2026-Apr-15] ##
+##----------------------------------------##
 Auto_OpenVPNEvent()
 {
 	case $1 in
 		create)
-			if [ -f /jffs/scripts/openvpn-event ]
+			if [ -s /jffs/scripts/openvpn-event ]
 			then
 				STARTUPLINECOUNT="$(grep -c '# '"$SCRIPT_NAME" /jffs/scripts/openvpn-event)"
 				STARTUPLINECOUNTEX="$(grep -cx "/jffs/scripts/$SCRIPT_NAME openvpn "'$1 $script_type & # '"$SCRIPT_NAME" /jffs/scripts/openvpn-event)"
@@ -658,23 +700,23 @@ Auto_OpenVPNEvent()
 				then
 					sed -i -e '/# '"$SCRIPT_NAME"'/d' /jffs/scripts/openvpn-event
 				fi
-
 				if [ "$STARTUPLINECOUNTEX" -eq 0 ]
 				then
 					sed -i '2 i /jffs/scripts/'"$SCRIPT_NAME"' openvpn $1 $script_type & # '"$SCRIPT_NAME" /jffs/scripts/openvpn-event
 				fi
 			else
 				echo "#!/bin/sh" > /jffs/scripts/openvpn-event
-				echo "" >> /jffs/scripts/openvpn-event
+				echo >> /jffs/scripts/openvpn-event
 				echo "/jffs/scripts/$SCRIPT_NAME openvpn "'$1 $script_type & # '"$SCRIPT_NAME" >> /jffs/scripts/openvpn-event
-				chmod 0755 /jffs/scripts/openvpn-event
 			fi
+			chmod 0755 /jffs/scripts/openvpn-event
 		;;
 		delete)
-			if [ -f /jffs/scripts/openvpn-event ]
+			if [ -s /jffs/scripts/openvpn-event ]
 			then
 				STARTUPLINECOUNT="$(grep -c '# '"$SCRIPT_NAME" /jffs/scripts/openvpn-event)"
-				if [ "$STARTUPLINECOUNT" -gt 0 ]; then
+				if [ "$STARTUPLINECOUNT" -gt 0 ]
+				then
 					sed -i -e '/# '"$SCRIPT_NAME"'/d' /jffs/scripts/openvpn-event
 				fi
 			fi
@@ -687,54 +729,60 @@ Auto_Cron()
 	case $1 in
 		create)
 			STARTUPLINECOUNT="$(cru l | grep -c "$SCRIPT_NAME")"
-			if [ "$STARTUPLINECOUNT" -eq 0 ]; then
+			if [ "$STARTUPLINECOUNT" -eq 0 ]
+			then
 				cru a "$SCRIPT_NAME" "*/10 * * * * /jffs/scripts/$SCRIPT_NAME check"
 			fi
 		;;
 		delete)
 			STARTUPLINECOUNT="$(cru l | grep -c "$SCRIPT_NAME")"
-			if [ "$STARTUPLINECOUNT" -gt 0 ]; then
+			if [ "$STARTUPLINECOUNT" -gt 0 ]
+			then
 				cru d "$SCRIPT_NAME"
 			fi
 		;;
 	esac
 }
 
+##----------------------------------------##
+## Modified by Martinski W. [2026-Apr-15] ##
+##----------------------------------------##
 Avahi_Conf()
 {
 	case $1 in
 		create)
-			if [ -f /jffs/scripts/avahi-daemon.postconf ]
+			if [ -s /jffs/scripts/avahi-daemon.postconf ]
 			then
+				chmod 0755 /jffs/scripts/avahi-daemon.postconf
 				STARTUPLINECOUNT="$(grep -c "$SCRIPT_NAME" /jffs/scripts/avahi-daemon.postconf)"
-
 				if [ "$STARTUPLINECOUNT" -eq 0 ]
 				then
 					{
-					echo 'echo "" >> "$1" # '"$SCRIPT_NAME"
-					echo 'echo "[reflector]" >> "$1" # '"$SCRIPT_NAME"
-					echo 'echo "enable-reflector=yes" >> "$1" # '"$SCRIPT_NAME"
-					echo "sed -i '/^\[Server\]/a cache-entries-max=0' "'"$1" # '"$SCRIPT_NAME"
+					   echo 'echo "" >> "$1" # '"$SCRIPT_NAME"
+					   echo 'echo "[reflector]" >> "$1" # '"$SCRIPT_NAME"
+					   echo 'echo "enable-reflector=yes" >> "$1" # '"$SCRIPT_NAME"
+					   echo "sed -i '/^\[Server\]/a cache-entries-max=0' "'"$1" # '"$SCRIPT_NAME"
 					} >> /jffs/scripts/avahi-daemon.postconf
 					service restart_mdns >/dev/null 2>&1
 				fi
 			else
 				{
-				echo '#!/bin/sh'
-				echo 'echo "" >> "$1" # '"$SCRIPT_NAME"
-				echo 'echo "[reflector]" >> "$1" # '"$SCRIPT_NAME"
-				echo 'echo "enable-reflector=yes" >> "$1" # '"$SCRIPT_NAME"
-				echo "sed -i '/^\[Server\]/a cache-entries-max=0' "'"$1" # '"$SCRIPT_NAME"
+				   echo '#!/bin/sh'
+				   echo 'echo "" >> "$1" # '"$SCRIPT_NAME"
+				   echo 'echo "[reflector]" >> "$1" # '"$SCRIPT_NAME"
+				   echo 'echo "enable-reflector=yes" >> "$1" # '"$SCRIPT_NAME"
+				   echo "sed -i '/^\[Server\]/a cache-entries-max=0' "'"$1" # '"$SCRIPT_NAME"
 				} > /jffs/scripts/avahi-daemon.postconf
 				chmod 0755 /jffs/scripts/avahi-daemon.postconf
 				service restart_mdns >/dev/null 2>&1
 			fi
 		;;
 		delete)
-			if [ -f /jffs/scripts/avahi-daemon.postconf ]
+			if [ -s /jffs/scripts/avahi-daemon.postconf ]
 			then
 				STARTUPLINECOUNT="$(grep -c "$SCRIPT_NAME" /jffs/scripts/avahi-daemon.postconf)"
-				if [ "$STARTUPLINECOUNT" -gt 0 ]; then
+				if [ "$STARTUPLINECOUNT" -gt 0 ]
+				then
 					sed -i -e '/# '"$SCRIPT_NAME"'/d' /jffs/scripts/avahi-daemon.postconf
 					service restart_mdns >/dev/null 2>&1
 				fi
@@ -1112,12 +1160,15 @@ IP_Router()
 Validate_Enabled_IFACE()
 {
 	IFACE_TEST="$(nvram get "${1}_bss_enabled")"
-	if ! Validate_Number "" "$IFACE_TEST" silent; then IFACE_TEST=0; fi
+	if ! Validate_Number "" "$IFACE_TEST" silent
+	then IFACE_TEST=0
+	fi
+
 	if [ "$IFACE_TEST" -eq 0 ]
 	then
 		if [ $# -lt 2 ] || [ -z "$2" ]
 		then
-			Print_Output false "$1 - Interface not enabled/configured in Web GUI (Guest Network menu)" "$ERR"
+			Print_Output false "$1 - Interface NOT enabled/configured in Web GUI (Guest Network menu)" "$ERR"
 		fi
 		return 1
 	else
@@ -1125,22 +1176,28 @@ Validate_Enabled_IFACE()
 	fi
 }
 
+##----------------------------------------##
+## Modified by Martinski W. [2026-Apr-15] ##
+##----------------------------------------##
 Validate_Exists_IFACE()
 {
-	validiface=""
+	local validIFace=false
 	for IFACE_EXIST in $IFACELIST
 	do
-		if [ "$1" = "$IFACE_EXIST" ]; then
-			validiface="true"
+		if [ "$1" = "$IFACE_EXIST" ]
+		then
+			validIFace=true
+			break
 		fi
 	done
 
-	if [ "$validiface" = "true" ]
+	if "$validIFace"
 	then
 		return 0
 	else
-		if [ $# -lt 2 ] || [ -z "$2" ]; then
-			Print_Output false "$1 - Interface not supported on this router" "$ERR"
+		if [ $# -lt 2 ] || [ -z "$2" ]
+		then
+			Print_Output false "$1 - Interface NOT supported on this router" "$ERR"
 		fi
 		return 1
 	fi
@@ -1172,7 +1229,7 @@ Validate_IP()
 			return 0
 		fi
 	else
-		Print_Output false "$1 - $2 - is not a valid IPv4 address, valid format is 1.2.3.4" "$ERR"
+		Print_Output false "$1 - $2 - is NOT a valid IPv4 address, valid format is 1.2.3.4" "$ERR"
 		return 1
 	fi
 }
@@ -2968,9 +3025,13 @@ Generate_QRCode()
 {
 	QRGUEST_WL="$1"
 	QRSSID="S:$(nvram get "$QRGUEST_WL"_ssid | sed 's/[\\":;,]/\\$&/g');"
-	QRAUTHMODE=$(nvram get "$QRGUEST_WL"_auth_mode_x)
+	QRAUTHMODE="$(nvram get "$QRGUEST_WL"_auth_mode_x)"
 
-	if [ "$QRAUTHMODE" = 'psk' ] || [ "$QRAUTHMODE" = 'psk2' ] || [ "$QRAUTHMODE" = 'sae' ] || [ "$QRAUTHMODE" = 'pskpsk2' ] || [ "$QRAUTHMODE" = 'psk2sae' ]
+	if [ "$QRAUTHMODE" = 'psk' ]  || \
+	   [ "$QRAUTHMODE" = 'psk2' ]  || \
+	   [ "$QRAUTHMODE" = 'sae' ]    || \
+	   [ "$QRAUTHMODE" = 'pskpsk2' ] || \
+	   [ "$QRAUTHMODE" = 'psk2sae' ]
 	then
 		QRTYPE="T:WPA;"
 		QRPASS="P:$(nvram get "$QRGUEST_WL"_wpa_psk | sed 's/[\\":;,]/\\$&/g');"
@@ -2984,7 +3045,7 @@ Generate_QRCode()
 		QRKEYINDEX=$(nvram get "$QRGUEST_WL"_key)
 		QRPASS="$(nvram get "$QRGUEST_WL"_key"$QRKEYINDEX");"
 	else
-		QRSSID="" # Unsupported
+		QRSSID=""  #UNSUPPORTED#
 	fi
 
 	if [ "$(nvram get "$QRGUEST_WL"_closed)" -eq 1 ]
@@ -2992,30 +3053,31 @@ Generate_QRCode()
 		QRHIDE="H:true;"
 	fi
 
-	if [ "$QRSSID" != "" ]
+	if [ -n "$QRSSID" ]
 	then
 		qrencode -t ANSI -o - "WIFI:${QRTYPE}${QRSSID}${QRPASS}${QRHIDE};"
 	else
-		printf "\\nQR Code generation not supported for this guest network. Please check configuration.\\n"
+		printf "\nQR Code generation NOT supported for this guest network. Please check configuration.\n"
 	fi
 	QRTYPE=""
 	QRSSID=""
 	QRPASS=""
 	QRHIDE=""
 }
-### ###
 
 Shortcut_Script()
 {
 	case $1 in
 		create)
-			if [ -d /opt/bin ] && [ ! -f "/opt/bin/$SCRIPT_NAME" ] && [ -f "/jffs/scripts/$SCRIPT_NAME" ]; then
+			if [ -d /opt/bin ] && [ ! -f "/opt/bin/$SCRIPT_NAME" ] && [ -f "/jffs/scripts/$SCRIPT_NAME" ]
+			then
 				ln -s "/jffs/scripts/$SCRIPT_NAME" /opt/bin
 				chmod 0755 "/opt/bin/$SCRIPT_NAME"
 			fi
 		;;
 		delete)
-			if [ -f "/opt/bin/$SCRIPT_NAME" ]; then
+			if [ -f "/opt/bin/$SCRIPT_NAME" ]
+			then
 				rm -f "/opt/bin/$SCRIPT_NAME"
 			fi
 		;;
@@ -3091,35 +3153,34 @@ ScriptHeader()
 ##----------------------------------------##
 MainMenu()
 {
-	printf "WebUI for %s is available at:\n${SETTING}%s${CLRct}\n\n" "$SCRIPT_NAME" "$(Get_WebUI_URL)"
+	printf " WebUI for %s is available at:\n ${SETTING}%s${CLRct}\n\n" "$SCRIPT_NAME" "$(Get_WebUI_URL)"
 
-	printf "1.    Apply %s settings\n\n" "$SCRIPT_NAME"
-	printf "2.    Show connected clients using %s\n\n" "$SCRIPT_NAME"
-	printf "3.    Edit %s config\n" "$SCRIPT_NAME"
-	printf "4.    Edit Guest Network config (SSID + passphrase)\n\n"
-	if [ -f /opt/bin/qrencode ]
+	printf "  ${GRNct}1${CLRct}.  Apply %s settings\n\n" "$SCRIPT_NAME"
+	printf "  ${GRNct}2${CLRct}.  Show connected clients using %s\n\n" "$SCRIPT_NAME"
+	printf "  ${GRNct}3${CLRct}.  Edit %s config\n" "$SCRIPT_NAME"
+	printf "  ${GRNct}4${CLRct}.  Edit Guest Network config (SSID + passphrase)\n\n"
+	if [ -x /opt/bin/opkg ] && [ -x /opt/bin/qrencode ]
 	then
-		printf "5.    Show QR Code for Guest Network\n\n"
+		printf " ${GRNct}qr${CLRct}.  Show QR Code for Guest Network\n\n"
 	else
-		printf "\nQR Code generation NOT supported.\n\n"
+		printf " ${GRAYEDct}qr${CLRct}.  ${REDct}QR Code generator NOT available${CLRct}\n\n"
 	fi
-	printf "u.    Check for updates\n"
-	printf "uf.   Update %s with latest version (force update)\n\n" "$SCRIPT_NAME"
-	printf "d.    Generate %s diagnostics\n\n" "$SCRIPT_NAME"
-	printf "e.    Exit %s\n\n" "$SCRIPT_NAME"
-	printf "z.    Uninstall %s\n" "$SCRIPT_NAME"
-	printf "\n"
-	printf "${BOLD}#############################################${CLRct}\n"
-	printf "\n"
+	printf "  ${GRNct}u${CLRct}.  Check for updates\n"
+	printf " ${GRNct}uf${CLRct}.  Update %s with latest version (force update)\n\n" "$SCRIPT_NAME"
+	printf "  ${GRNct}d${CLRct}.  Generate %s diagnostics\n\n" "$SCRIPT_NAME"
+	printf "  ${GRNct}e${CLRct}.  Exit %s\n\n" "$SCRIPT_NAME"
+	printf "  ${GRNct}z${CLRct}.  Uninstall %s\n\n" "$SCRIPT_NAME"
+	printf "${BOLD}#############################################${CLRct}\n\n"
 
 	while true
 	do
-		printf "Choose an option:  "
+		printf " Choose an option:  "
 		read -r menuOption
 		case "$menuOption" in
 			1)
 				printf "\n"
-				if Check_Lock menu; then
+				if Check_Lock menu
+				then
 					Config_Networks
 					Clear_Lock
 				fi
@@ -3127,14 +3188,15 @@ MainMenu()
 				break
 			;;
 			2)
-				printf "\\n"
+				printf "\n"
 				Menu_Status
 				PressEnter
 				break
 			;;
 			3)
-				printf "\\n"
-				if Check_Lock menu; then
+				printf "\n"
+				if Check_Lock menu
+				then
 					Menu_Edit
 				else
 					PressEnter
@@ -3142,29 +3204,29 @@ MainMenu()
 				break
 			;;
 			4)
-				printf "\\n"
-				if Check_Lock menu; then
+				printf "\n"
+				if Check_Lock menu
+				then
 					Menu_GuestConfig
 				else
 					PressEnter
 				fi
 				break
 			;;
-			5)
-				if [ -f /opt/bin/qrencode ]
+			qr)
+				if [ -x /opt/bin/opkg ] && [ -x /opt/bin/qrencode ]
 				then
 					Menu_QRCode
-					printf "\n"
-					PressEnter
 				else
-					printf "\nQR Code generation NOT supported.\n\n"
+					printf "\n ${REDct}QR Code generator is NOT available${CLRct}\n\n"
 					PressEnter
 				fi
 				break
 			;;
 			u)
-				printf "\\n"
-				if Check_Lock menu; then
+				printf "\n"
+				if Check_Lock menu
+				then
 					Update_Version
 					Clear_Lock
 				fi
@@ -3172,8 +3234,9 @@ MainMenu()
 				break
 			;;
 			uf)
-				printf "\\n"
-				if Check_Lock menu; then
+				printf "\n"
+				if Check_Lock menu
+				then
 					Update_Version force
 					Clear_Lock
 				fi
@@ -3188,13 +3251,13 @@ MainMenu()
 			;;
 			e)
 				ScriptHeader
-				printf "\n${BOLD}Thanks for using %s!${CLEARFORMAT}\n\n\n" "$SCRIPT_NAME"
+				printf "\n${BOLD}Thanks for using %s!${CLRct}\n\n\n" "$SCRIPT_NAME"
 				exit 0
 			;;
 			z)
 				while true
 				do
-					printf "\n${BOLD}Are you sure you want to uninstall %s? (y/n)${CLEARFORMAT}  " "$SCRIPT_NAME"
+					printf "\n${BOLD}Are you sure you want to uninstall %s? (y/n)${CLRct}  " "$SCRIPT_NAME"
 					read -r confirm
 					case "$confirm" in
 						y|Y)
@@ -3208,7 +3271,7 @@ MainMenu()
 				done
 			;;
 			*)
-				printf "\nPlease choose a valid option.\n\n"
+				printf "\n Please choose a valid option.\n\n"
 			;;
 		esac
 	done
@@ -3274,7 +3337,7 @@ Menu_Install()
 		exit 1
 	fi
 
-	if [ ! -f /opt/bin/qrencode ] && [ -x /opt/bin/opkg ]
+	if [ -x /opt/bin/opkg ] && [ ! -s /opt/bin/qrencode ]
 	then
 		opkg update
 		opkg install qrencode
@@ -3287,7 +3350,7 @@ Menu_Install()
 		Update_File shared-jy.tar.gz
 		Update_File YazFi_www.asp
 	else
-		Print_Output false "WebUI is only support on firmware versions with addon support" "$WARN"
+		Print_Output false "WebUI is supported only on firmware versions with add-on support" "$WARN"
 	fi
 
 	if ! Conf_Exists
@@ -3326,13 +3389,13 @@ Menu_Startup()
 {
 	if ! _Firmware_Support_Check_
 	then
-		printf "${ERR}Exiting...${CLEARFORMAT}\n"
+		printf "${ERR}Exiting...${CLRct}\n"
 		Clear_Lock
 		exit 1
 	fi
 
 	sleep 15
-	if [ ! -f /opt/bin/qrencode ] && [ -x /opt/bin/opkg ]
+	if [ -x /opt/bin/opkg ] && [ ! -s /opt/bin/qrencode ]
 	then
 		opkg update
 		opkg install qrencode
@@ -3344,126 +3407,136 @@ Menu_Startup()
 	Mount_WebUI
 }
 
+##----------------------------------------##
+## Modified by Martinski W. [2026-Apr-15] ##
+##----------------------------------------##
 Menu_Edit()
 {
-	texteditor=""
-	exitmenu="false"
+	local exitMenu=false  textEditor=""
 	if ! Conf_Exists
 	then
 		Conf_Download "$SCRIPT_CONF"
 	fi
-	printf "\n${BOLD}A choice of text editors is available:${CLEARFORMAT}\\n"
-	printf "1.    nano (recommended for beginners)\\n"
-	printf "2.    vi\\n"
-	printf "\\ne.    Exit to main menu\\n"
+	printf "\n ${BOLD}Text editors available:${CLRct}\n\n"
+	printf " 1.  nano (recommended for beginners)\n"
+	printf " 2.  vi\n\n"
+	printf " e.  Exit to main menu\n"
 
 	while true
 	do
-		printf "\\n${BOLD}Choose an option:${CLEARFORMAT}  "
+		printf "\n ${BOLD}Choose an option:${CLRct}  "
 		read -r editor
 		case "$editor" in
 			1)
-				texteditor="nano -K"
-				break
-			;;
+				textEditor="nano -K" ; break ;;
 			2)
-				texteditor="vi"
-				break
-			;;
+				textEditor="vi" ; break ;;
 			e)
-				exitmenu="true"
-				break
-			;;
+				exitMenu=true ; break ;;
 			*)
-				printf "\nPlease choose a valid option.\n\n"
-			;;
+				printf "\n Please choose a valid option.\n\n" ;;
 		esac
 	done
 
-	if [ "$exitmenu" != "true" ]; then
-		$texteditor "$SCRIPT_CONF"
+	if [ "$exitMenu" != "true" ]
+	then
+		$textEditor "$SCRIPT_CONF"
 	fi
 	Clear_Lock
 }
 
+##----------------------------------------##
+## Modified by Martinski W. [2026-Apr-15] ##
+##----------------------------------------##
 Menu_GuestConfig()
 {
-	exitmenu="false"
-	selectediface=""
-	changesmade="false"
+	local exitMenu=false
+	local selectediface=""  changesMade=false
+	local guestNAMEstr  guestSSIDstr  guestPSWDstr
+    local exitRegExp="([Ee](xit)?|EXIT)"
 
 	ScriptHeader
 
-	printf "\\n${BOLD}Please select a Guest Network:${CLEARFORMAT}\\n\\n"
+	printf "\n ${BOLD}Select a Guest Network to configure:${CLRct}\n\n"
 	COUNTER=1
 	for IFACE_MENU in $IFACELIST
 	do
-		if [ "$((COUNTER % 4))" -eq 0 ]; then printf "\n"; fi
+		if [ "$((COUNTER % 4))" -eq 0 ]
+		then printf "\n"
+		fi
 		IFACE_MENU_TEST="$(nvram get "${IFACE_MENU}_bss_enabled")"
 		if ! Validate_Number "" "$IFACE_MENU_TEST" silent
-		then IFACE_MENU_TEST=0; fi
+		then IFACE_MENU_TEST=0
+		fi
 		if [ "$IFACE_MENU_TEST" -eq 1 ]
 		then
-			printf "%s.    %s (SSID: %s)\\n" "$COUNTER" "$(Get_Guest_Name "$IFACE_MENU")" "$(nvram get "${IFACE_MENU}_ssid")"
+			printf " %s.  %s (SSID: %s)\n" "$COUNTER" "$(Get_Guest_Name "$IFACE_MENU")" "$(nvram get "${IFACE_MENU}_ssid")"
 		fi
-		COUNTER=$((COUNTER + 1))
+		COUNTER="$((COUNTER + 1))"
 	done
-
-	printf "\\ne.    Go back\\n"
+	printf "\n e.  Exit to main menu\n"
 
 	while true
 	do
 		selectediface=""
-		printf "\\n${BOLD}Choose an option:${CLEARFORMAT}  "
+		printf "\n ${BOLD}Choose an option:${CLRct}  "
 		read -r selectedguest
 
 		case "$selectedguest" in
 			1|2|3|4|5|6|7|8|9)
-				selectediface="$(echo "$IFACELIST" | awk '{print $'"$selectedguest"'}')"
-			;;
+				selectediface="$(echo "$IFACELIST" | awk -F ' ' '{print $'"$selectedguest"'}')" ;;
 			e)
-				exitmenu="true"
-				break
-			;;
+				exitMenu=true ; break ;;
 			*)
-				printf "\\nPlease choose a valid option\\n\\n"
-			;;
+				printf "\n Please choose a valid option\n" ;;
 		esac
 
-		if [ -n "$selectediface" ]
+		if [ -z "$selectediface" ]
 		then
+			echo "$selectedguest" | grep -qE "^[1-9]$" && \
+			printf "\n Please choose a valid option\n"
+		else
 			if ! Validate_Exists_IFACE "$selectediface" silent
 			then
-				printf "\\nSelected guest (%s) not supported on your router, please choose a different option\\n" "$selectediface"
+				printf "\n Selected guest (%s) NOT supported on your router, please choose a different option\n" "$selectediface"
 			else
 				selectediface_TEST="$(nvram get "${selectediface}_bss_enabled")"
 				if ! Validate_Number "" "$selectediface_TEST" silent
-				then selectediface_TEST=0; fi
-				if [ "$selectediface_TEST" -eq 1 ]; then
+				then selectediface_TEST=0
+				fi
+				if [ "$selectediface_TEST" -eq 1 ]
+				then
 					break
 				else
-					printf "\\nSelected guest (%s) not enabled on your router, please choose a different option\\n" "$selectediface"
+					printf "\n Selected guest (%s) NOT enabled on your router, please choose a different option\n" "$selectediface"
 				fi
 			fi
 		fi
 	done
 
-	if [ "$exitmenu" != "true" ]
+	if [ "$exitMenu" != "true" ]
 	then
+		guestNAMEstr="$(Get_Guest_Name "$selectediface")"
+		guestSSIDstr="$(nvram get "${selectediface}_ssid")"
+		guestPSWDstr="$(nvram get "${selectediface}_wpa_psk")"
+
 		while true
 		do
 			ScriptHeader
-			printf "\\n${BOLD}%s (%s)${CLEARFORMAT}\\n\\n" "$(Get_Guest_Name "$selectediface")" "$selectediface"
-			printf "${BOLD}Available options:${CLEARFORMAT}\\n\\n"
-			printf "1.    Set SSID (current: %s)\\n" "$(nvram get "${selectediface}_ssid")"
-			printf "2.    Set passphrase (current: %s)\\n" "$(nvram get "${selectediface}_wpa_psk")"
-			printf "\\ne.    Go back\\n"
-			printf "\\n${BOLD}Choose an option:${CLEARFORMAT}  "
+			printf "\n ${GRNct}%s (%s)${CLRct}\n" "$guestNAMEstr" "$selectediface"
+			printf "\n ${BOLD}Available options:${CLRct}\n\n"
+			printf " 1.  Set SSID (current: %s)\n" "$guestSSIDstr"
+			printf " 2.  Set passphrase (current: %s)\n\n" "$guestPSWDstr"
+			printf " e.  Go back\n"
+			printf "\n ${BOLD}Choose an option:${CLRct}  "
 			read -r guestoption
 			case "$guestoption" in
 				1)
-					printf "\\n${BOLD}Please enter your new SSID:${CLEARFORMAT}  "
+					printf "\n ${BOLD}Please enter your new SSID:${CLRct}  "
 					read -r newssid
+					if echo "$newssid" | grep -qE "^${exitRegExp}$"
+					then continue
+					fi
 					newssidclean="$newssid"
 					if ! Validate_String "$newssid"
 					then
@@ -3471,37 +3544,38 @@ Menu_GuestConfig()
 					fi
 					nvram set "${selectediface}_ssid"="$newssidclean"
 					nvram commit
-					changesmade="true"
+					changesMade=true
 				;;
 				2)
 					while true
 					do
-						printf "\\n${BOLD}Available options:${CLEARFORMAT}\\n\\n"
-						printf "1.    Generate random passphrase\\n"
-						printf "2.    Manually set passphrase\\n"
-						printf "\\ne.    Go back\\n"
-						printf "\\n${BOLD}Choose an option:${CLEARFORMAT}  "
+						printf "\n ${BOLD}Available options:${CLRct}\n\n"
+						printf " 1.  Generate random passphrase\n"
+						printf " 2.  Manually set passphrase\n\n"
+						printf " e.  Go back\n"
+						printf "\n ${BOLD}Choose an option:${CLRct}  "
 						read -r passoption
 						case "$passoption" in
 							1)
 								validpasslength=""
 								while true
 								do
-									printf "\\n${BOLD}How many characters? (8-32)${CLEARFORMAT}  "
+									printf "\n ${BOLD}How many characters? [8-32]${CLRct}  "
 									read -r passlength
-									if Validate_Number "" "$passlength" silent
+									if echo "$passlength" | grep -qE "^${exitRegExp}$"
+									then
+										break
+									elif Validate_Number "" "$passlength" silent
 									then
 										if [ "$passlength" -le 32 ] && [ "$passlength" -ge 8 ]
 										then
 											validpasslength="$passlength"
 											break
 										else
-											printf "\\nPlease choose a number between 8 and 32\\n\\n"
+											printf "\n Please choose a number between 8 and 32\n\n"
 										fi
-									elif [ "$passlength" = "e" ]; then
-										break
 									else
-										printf "\\nPlease choose a valid number\\n\\n"
+										printf "\n Please choose a valid number\n\n"
 									fi
 								done
 
@@ -3510,38 +3584,41 @@ Menu_GuestConfig()
 									newpassphrase="$(Generate_Random_String "$validpasslength")"
 									newpassphraseclean="$(echo "$newpassphrase" | sed 's/[^a-zA-Z0-9]//g')"
 									Set_WiFi_Passphrase "$selectediface" "$newpassphraseclean"
-									changesmade="true"
+									changesMade=true
 									break
 								fi
 							;;
 							2)
-								printf "\\n${BOLD}Please enter your new passphrase:${CLEARFORMAT}  "
+								printf "\n ${BOLD}Please enter your new passphrase:${CLRct}  "
 								read -r newpassphrase
+								if echo "$newpassphrase" | grep -qE "^${exitRegExp}$"
+								then continue
+								fi
 								newpassphraseclean="$newpassphrase"
 								if ! Validate_String "$newpassphrase"
 								then
 									newpassphraseclean="$(echo "$newpassphrase" | sed 's/[^a-zA-Z0-9]//g')"
 								fi
-
 								Set_WiFi_Passphrase "$selectediface" "$newpassphraseclean"
-								changesmade="true"
+								changesMade=true
 								break
 							;;
 							e)
 								break
 							;;
 							*)
-								printf "\\nPlease choose a valid option\\n\\n"
+								printf "\n Please choose a valid option\n\n"
+								PressEnter
 							;;
 						esac
 					done
 				;;
 				e)
-					if [ "$changesmade" = "true" ]
+					if "$changesMade"
 					then
 						while true
 						do
-							printf "\\n${BOLD}Do you want to restart wireless services now? (y/n)${CLEARFORMAT}  "
+							printf "\n ${BOLD}Do you want to restart wireless services now? (y/n)${CLRct}  "
 							read -r confirmrestart
 							case "$confirmrestart" in
 								y|Y)
@@ -3559,7 +3636,8 @@ Menu_GuestConfig()
 					break
 				;;
 				*)
-					printf "\nPlease choose a valid option.\n\n"
+					printf "\n Please choose a valid option.\n\n"
+					PressEnter
 				;;
 			esac
 		done
@@ -3569,77 +3647,82 @@ Menu_GuestConfig()
 	Clear_Lock
 }
 
+##----------------------------------------##
+## Modified by Martinski W. [2026-Apr-15] ##
+##----------------------------------------##
 Menu_QRCode()
 {
-	exitmenu="false"
-	selectediface=""
+	local exitMenu=false  selectediface=""
 
 	ScriptHeader
 
-	printf "\n${BOLD}Please select a Guest Network:${CLEARFORMAT}\n\n"
+	printf "\n ${BOLD}Select a Guest Network for QR Code:${CLRct}\n\n"
 	COUNTER=1
 	for IFACE_MENU in $IFACELIST
 	do
-		if [ "$((COUNTER % 4))" -eq 0 ]; then printf "\n"; fi
+		if [ "$((COUNTER % 4))" -eq 0 ]
+		then printf "\n"
+		fi
 		IFACE_MENU_TEST="$(nvram get "${IFACE_MENU}_bss_enabled")"
 		if ! Validate_Number "" "$IFACE_MENU_TEST" silent
-		then IFACE_MENU_TEST=0; fi
+		then IFACE_MENU_TEST=0
+		fi
 		if [ "$IFACE_MENU_TEST" -eq 1 ]
 		then
-			printf "%s.    %s (SSID: %s)\\n" "$COUNTER" "$(Get_Guest_Name "$IFACE_MENU")" "$(nvram get "${IFACE_MENU}_ssid")"
+			printf " %s.  %s (SSID: %s)\n" "$COUNTER" "$(Get_Guest_Name "$IFACE_MENU")" "$(nvram get "${IFACE_MENU}_ssid")"
 		fi
-		COUNTER=$((COUNTER + 1))
+		COUNTER="$((COUNTER + 1))"
 	done
-
-	printf "\\ne.    Go back\\n"
+	printf "\n e.  Exit to main menu\n"
 
 	while true
 	do
 		selectediface=""
-		printf "\n${BOLD}Choose an option:${CLEARFORMAT}  "
+		printf "\n ${BOLD}Choose an option:${CLRct}  "
 		read -r selectedguest
 
 		case "$selectedguest" in
 			1|2|3|4|5|6|7|8|9)
-				selectediface="$(echo "$IFACELIST" | awk '{print $'"$selectedguest"'}')"
-			;;
+				selectediface="$(echo "$IFACELIST" | awk -F ' ' '{print $'"$selectedguest"'}')" ;;
 			e)
-				exitmenu="true"
-				break
-			;;
+				exitMenu=true ; break ;;
 			*)
-				printf "\\nPlease choose a valid option\\n\\n"
-			;;
+				printf "\n Please choose a valid option\n" ;;
 		esac
 
-		if [ -n "$selectediface" ]
+		if [ -z "$selectediface" ]
 		then
+			echo "$selectedguest" | grep -qE "^[1-9]$" && \
+			printf "\n Please choose a valid option\n"
+		else
 			if ! Validate_Exists_IFACE "$selectediface" silent
 			then
-				printf "\\nSelected guest (%s) not supported on your router, please choose a different option\\n" "$selectediface"
+				printf "\n Selected guest (%s) NOT supported on your router, please choose a different option\n" "$selectediface"
 			else
 				selectediface_TEST="$(nvram get "${selectediface}_bss_enabled")"
 				if ! Validate_Number "" "$selectediface_TEST" silent
-				then selectediface_TEST=0; fi
+				then selectediface_TEST=0
+				fi
 				if [ "$selectediface_TEST" -eq 1 ]
 				then
 					break
 				else
-					printf "\\nSelected guest (%s) not enabled on your router, please choose a different option\\n" "$selectediface"
+					printf "\n Selected guest (%s) NOT enabled on your router, please choose a different option\n" "$selectediface"
 				fi
 			fi
 		fi
 	done
 
-	if [ "$exitmenu" != "true" ]
+	if [ "$exitMenu" != "true" ]
 	then
-		if [ -f /opt/bin/qrencode ]
+		if [ -x /opt/bin/opkg ] && [ -x /opt/bin/qrencode ]
 		then
 			printf "\n"
 			Generate_QRCode "${selectediface}"
 		else
-			printf "\nQR Code generation NOT supported.\n"
+			printf "\n ${REDct}QR Code generator is NOT available${CLRct}\n"
 		fi
+		echo ; PressEnter
 	fi
 }
 
@@ -3655,7 +3738,7 @@ Menu_Status()
 	TMPSTATUSOUTPUTFILE="/tmp/.connectedclients"
 	. "$SCRIPT_CONF"
 
-	if [ ! -f /opt/bin/dig ] && [ -f /opt/bin/opkg ]
+	if [ -x /opt/bin/opkg ] && [ ! -s /opt/bin/dig ]
 	then
 		opkg update
 		opkg install bind-dig
@@ -3679,7 +3762,8 @@ Menu_Status()
 	for IFACE in $IFACELIST
 	do
 		if [ "$(eval echo '$'"$(Get_Iface_Var "$IFACE")_ENABLED")" = "true" ] && \
-		   Validate_Exists_IFACE "$IFACE" silent && Validate_Enabled_IFACE "$IFACE" silent
+		   Validate_Exists_IFACE "$IFACE" silent && \
+		   Validate_Enabled_IFACE "$IFACE" silent
 		then
 			"$NoARGs" && \
 			{
@@ -4076,7 +4160,6 @@ case "$1" in
 		if ! Conf_Exists; then
 			exit 1
 		fi
-
 		if ! Conf_Validate; then
 			exit 1
 		fi
