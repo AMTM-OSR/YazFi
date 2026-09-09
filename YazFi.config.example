@@ -31,6 +31,7 @@ wl01_TWOWAYTOGUEST=false
 wl01_ONEWAYTOGUEST=false
 wl01_CLIENTISOLATION=false
 wl01_TWOWAYTOGUEST_MODE=NAT
+wl01_ONEWAYTOGUEST_MODE=NAT
 ####################################################################
 ######                 Guest Network 2 (wl0.2)                 #####
 ####################################################################
@@ -49,6 +50,7 @@ wl02_TWOWAYTOGUEST=false
 wl02_ONEWAYTOGUEST=false
 wl02_CLIENTISOLATION=false
 wl02_TWOWAYTOGUEST_MODE=NAT
+wl02_ONEWAYTOGUEST_MODE=NAT
 ####################################################################
 ######                 Guest Network 3 (wl0.3)                 #####
 ####################################################################
@@ -67,6 +69,7 @@ wl03_TWOWAYTOGUEST=false
 wl03_ONEWAYTOGUEST=false
 wl03_CLIENTISOLATION=false
 wl03_TWOWAYTOGUEST_MODE=NAT
+wl03_ONEWAYTOGUEST_MODE=NAT
 ####################################################################
 ######                     5 GHz Networks                     ######
 ##### (5GHz-2 Network for Quad-Band routers, e.g. GT-AXE16000) #####
@@ -88,6 +91,7 @@ wl11_TWOWAYTOGUEST=false
 wl11_ONEWAYTOGUEST=false
 wl11_CLIENTISOLATION=false
 wl11_TWOWAYTOGUEST_MODE=NAT
+wl11_ONEWAYTOGUEST_MODE=NAT
 ####################################################################
 ######                 Guest Network 2 (wl1.2)                 #####
 ####################################################################
@@ -106,6 +110,7 @@ wl12_TWOWAYTOGUEST=false
 wl12_ONEWAYTOGUEST=false
 wl12_CLIENTISOLATION=false
 wl12_TWOWAYTOGUEST_MODE=NAT
+wl12_ONEWAYTOGUEST_MODE=NAT
 ####################################################################
 ######                 Guest Network 3 (wl1.3)                 #####
 ####################################################################
@@ -124,6 +129,7 @@ wl13_TWOWAYTOGUEST=false
 wl13_ONEWAYTOGUEST=false
 wl13_CLIENTISOLATION=false
 wl13_TWOWAYTOGUEST_MODE=NAT
+wl13_ONEWAYTOGUEST_MODE=NAT
 ####################################################################
 ######                    5 GHz - 2 Networks                  ######
 ######     (For those with 2 5GHz radios, e.g. RT-AC5300)     ######
@@ -147,6 +153,7 @@ wl21_TWOWAYTOGUEST=false
 wl21_ONEWAYTOGUEST=false
 wl21_CLIENTISOLATION=false
 wl21_TWOWAYTOGUEST_MODE=NAT
+wl21_ONEWAYTOGUEST_MODE=NAT
 ####################################################################
 ######                 Guest Network 2 (wl2.2)                 #####
 ####################################################################
@@ -165,6 +172,7 @@ wl22_TWOWAYTOGUEST=false
 wl22_ONEWAYTOGUEST=false
 wl22_CLIENTISOLATION=false
 wl22_TWOWAYTOGUEST_MODE=NAT
+wl22_ONEWAYTOGUEST_MODE=NAT
 ####################################################################
 ######                 Guest Network 3 (wl2.3)                 #####
 ####################################################################
@@ -183,6 +191,7 @@ wl23_TWOWAYTOGUEST=false
 wl23_ONEWAYTOGUEST=false
 wl23_CLIENTISOLATION=false
 wl23_TWOWAYTOGUEST_MODE=NAT
+wl23_ONEWAYTOGUEST_MODE=NAT
 ####################################################################
 ######                    2.4 GHz Networks                    ######
 ######        (For Quad-Band routers, e.g. GT-AXE16000)       ######
@@ -204,6 +213,7 @@ wl31_TWOWAYTOGUEST=false
 wl31_ONEWAYTOGUEST=false
 wl31_CLIENTISOLATION=false
 wl31_TWOWAYTOGUEST_MODE=NAT
+wl31_ONEWAYTOGUEST_MODE=NAT
 ####################################################################
 ######                 Guest Network 2 (wl3.2)                 #####
 ####################################################################
@@ -222,6 +232,7 @@ wl32_TWOWAYTOGUEST=false
 wl32_ONEWAYTOGUEST=false
 wl32_CLIENTISOLATION=false
 wl32_TWOWAYTOGUEST_MODE=NAT
+wl32_ONEWAYTOGUEST_MODE=NAT
 ####################################################################
 ######                 Guest Network 3 (wl3.3)                 #####
 ####################################################################
@@ -240,4 +251,5 @@ wl33_TWOWAYTOGUEST=false
 wl33_ONEWAYTOGUEST=false
 wl33_CLIENTISOLATION=false
 wl33_TWOWAYTOGUEST_MODE=NAT
+wl33_ONEWAYTOGUEST_MODE=NAT
 ####################################################################
