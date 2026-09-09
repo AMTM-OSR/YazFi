@@ -17,7 +17,7 @@
 ##       Guest Network DHCP script and for       ##
 ##            AsusWRT-Merlin firmware            ##
 ###################################################
-# Last Modified: 2026-Sep-06
+# Last Modified: 2026-Sep-08
 #--------------------------------------------------
 
 ######       Shellcheck directives     ######
@@ -42,7 +42,7 @@
 readonly SCRIPT_NAME="YazFi"
 readonly YAZFI_VERSION="v4.4.13"
 readonly SCRIPT_VERSION="v4.4.13"
-readonly SCRIPT_VERSTAG="26090600"
+readonly SCRIPT_VERSTAG="26090823"
 SCRIPT_BRANCH="develop"
 SCRIPT_REPO="https://raw.githubusercontent.com/AMTM-OSR/${SCRIPT_NAME}/$SCRIPT_BRANCH"
 
@@ -101,8 +101,6 @@ then readonly isInteractive=true
 else readonly isInteractive=false
 fi
 
-tempNVRAMvalueFPath="${TEMP_DIR}/nvramValue_${SCRIPT_NAME}_$$.TMP.TXT"
-
 ##-------------------------------------##
 ## Added by Martinski W. [2026-Sep-05] ##
 ##-------------------------------------##
@@ -139,24 +137,31 @@ Print_Output()
 ##-------------------------------------##
 ## Added by Martinski W. [2026-Sep-05] ##
 ##-------------------------------------##
+readonly nvramInitUSleep=10
+readonly nvramWaitUSleep=50
+readonly nvramWaitFactor=20000
+readonly nvramWaitSecMAX=2
+readonly nvramWaitCntMAX="$((nvramWaitSecMAX * nvramWaitFactor))"
+readonly nvramValueTempFPath="${TEMP_DIR}/nvramValue_${SCRIPT_NAME}_$$.TMP.TXT"
+##-------------------------------------##
 _NVRAM_Get_()
 {
    local nvramProcID  nvramProcOK=false  retCode=1
-   local waitUSleep=1000  waitFactorX=1000  waitSecsMAX=4
-   local sleepCountNUM=0  sleepCountMAX="$((waitSecsMAX * waitFactorX))"
-   local logMsgStr  nvramKeyValue=""
+   local waitCountNUM=0  logMsgStr  nvramKeyValue=""
 
-   printf '' > "$tempNVRAMvalueFPath"
-   nvram get "$1" > "$tempNVRAMvalueFPath" &  nvramProcID="$!"
+   printf '' > "$nvramValueTempFPath"
+   nvram get "$1" > "$nvramValueTempFPath" &
+   nvramProcID="$!"
+   usleep "$nvramInitUSleep"
 
    while true
    do
-       usleep "$waitUSleep"
-       sleepCountNUM="$((sleepCountNUM + 1))"
        if ! kill -EXIT "$nvramProcID" 2>/dev/null
        then nvramProcOK=true ; break
        fi
-       if [ "$sleepCountNUM" -ge "$sleepCountMAX" ]
+       usleep "$nvramWaitUSleep"
+       waitCountNUM="$((waitCountNUM + 1))"
+       if [ "$waitCountNUM" -ge "$nvramWaitCntMAX" ]
        then break
        fi
    done
@@ -164,17 +169,17 @@ _NVRAM_Get_()
    if kill -EXIT "$nvramProcID" 2>/dev/null
    then
        nvramProcOK=false
-       kill -9 "$nvramProcID"
-       logMsgStr="**ALERT**: Wait timeout [$waitSecsMAX secs] for 'nvram get $1' command expired."
+       kill -KILL "$nvramProcID" 2>/dev/null ; wait "$nvramProcID"
+       logMsgStr="**ALERT**: Wait timeout [$nvramWaitSecMAX secs] for 'nvram get $1' command expired."
        Print_Output true "$logMsgStr" "$ERR"
    fi
-   if "$nvramProcOK" && [ -s "$tempNVRAMvalueFPath" ]
+   if "$nvramProcOK" && [ -s "$nvramValueTempFPath" ]
    then
-       nvramKeyValue="$(cat "$tempNVRAMvalueFPath")"
+       nvramKeyValue="$(cat "$nvramValueTempFPath")"
        retCode=0
    fi
 
-   rm -f "$tempNVRAMvalueFPath"
+   rm -f "$nvramValueTempFPath"
    echo "$nvramKeyValue"
    return "$retCode"
 }
@@ -1052,32 +1057,41 @@ Set_Version_Custom_Settings()
 ##----------------------------------------##
 Update_Check()
 {
-	echo 'var updatestatus = "InProgress";' > "$SCRIPT_WEB_DIR/detect_update.js"
-	doupdate="false"
-	localver="$(grep 'SCRIPT_VERSION=' "$SCRIPT_FPATH" | grep -m1 -oE "$scriptVersRegExp")"
-	curl -fsL --retry 4 --retry-delay 5 "$SCRIPT_REPO/$SCRIPT_NAME.sh" | grep -qwF 'jackyaz' || \
-	{ Print_Output true "404 error detected - stopping update" "$ERR"; return 1; }
-	serverver="$(curl -fsL --retry 4 --retry-delay 5 "$SCRIPT_REPO/$SCRIPT_NAME.sh" | grep 'SCRIPT_VERSION=' | grep -m1 -oE "$scriptVersRegExp")"
-	if [ "$localver" != "$serverver" ]
+	echo 'var updatestatus = "InProgress";' > "${SCRIPT_WEB_DIR}/detect_update.js"
+	tempFPathSHx="${TEMP_DIR}/${SCRIPT_NAME}.TMP.SH" ; rm -f "$tempFPathSHx"
+	if ! Download_File "$SCRIPT_REPO" "${SCRIPT_NAME}.sh" "$tempFPathSHx"
 	then
-		doupdate="version"
-		Set_Version_Custom_Settings server "$serverver"
-		echo 'var updatestatus = "'"$serverver"'";'  > "$SCRIPT_WEB_DIR/detect_update.js"
+		Print_Output true "$SCRIPT_NAME script was NOT updated. Download failed." "$ERR"
+		echo 'var updatestatus = "None";' > "${SCRIPT_WEB_DIR}/detect_update.js"
+		echo "false,$SCRIPT_VERSION,$SCRIPT_VERSION"
+		return 1
+	fi
+
+	getUpdate="false"
+	localVers="$(grep '^readonly SCRIPT_VERSION=' "$SCRIPT_FPATH" | grep -m1 -oE "$scriptVersRegExp")"
+	serverVer="$(grep '^readonly SCRIPT_VERSION=' "$tempFPathSHx" | grep -m1 -oE "$scriptVersRegExp")"
+	if [ "$localVers" != "$serverVer" ]
+	then
+		getUpdate="version"
+		Set_Version_Custom_Settings server "$serverVer"
+		echo 'var updatestatus = "'"$serverVer"'";'  > "${SCRIPT_WEB_DIR}/detect_update.js"
 	else
-		localmd5="$(md5sum "$SCRIPT_FPATH" | awk '{print $1}')"
-		remotemd5="$(curl -fsL --retry 4 --retry-delay 5 "$SCRIPT_REPO/$SCRIPT_NAME.sh" | md5sum | awk '{print $1}')"
-		if [ "$localmd5" != "$remotemd5" ]
+		localxMD5="$(md5sum "$SCRIPT_FPATH" | awk '{print $1}')"
+		remoteMD5="$(md5sum "$tempFPathSHx" | awk '{print $1}')"
+		if [ "$localxMD5" != "$remoteMD5" ]
 		then
-			doupdate="md5"
-			Set_Version_Custom_Settings server "$serverver-hotfix"
-			echo 'var updatestatus = "'"$serverver-hotfix"'";'  > "$SCRIPT_WEB_DIR/detect_update.js"
+			getUpdate="md5"
+			Set_Version_Custom_Settings server "${serverVer}-hotfix"
+			echo 'var updatestatus = "'"${serverVer}-hotfix"'";'  > "${SCRIPT_WEB_DIR}/detect_update.js"
 		fi
 	fi
-	if [ "$doupdate" = "false" ]
+	if [ "$getUpdate" = "false" ]
 	then
-		echo 'var updatestatus = "None";'  > "$SCRIPT_WEB_DIR/detect_update.js"
+		echo 'var updatestatus = "None";'  > "${SCRIPT_WEB_DIR}/detect_update.js"
 	fi
-	echo "$doupdate,$localver,$serverver"
+	rm -f "$tempFPathSHx"
+	echo "$getUpdate,$localVers,$serverVer"
+	return 0
 }
 
 ##----------------------------------------##
@@ -1087,20 +1101,20 @@ Update_Version()
 {
 	if [ $# -eq 0 ] || [ -z "$1" ]
 	then
-		updatecheckresult="$(Update_Check)"
-		isupdate="$(echo "$updatecheckresult" | cut -f1 -d',')"
-		localver="$(echo "$updatecheckresult" | cut -f2 -d',')"
-		serverver="$(echo "$updatecheckresult" | cut -f3 -d',')"
+		updateCheckResult="$(Update_Check)"
+		getUpdate="$(echo "$updateCheckResult" | cut -d',' -f1)"
+		localVers="$(echo "$updateCheckResult" | cut -d',' -f2)"
+		serverVer="$(echo "$updateCheckResult" | cut -d',' -f3)"
 
-		if [ "$isupdate" = "version" ]
+		if [ "$getUpdate" = "version" ]
 		then
-			Print_Output true "New version of $SCRIPT_NAME available - $serverver" "$PASS"
-		elif [ "$isupdate" = "md5" ]
+			Print_Output true "New version of $SCRIPT_NAME available - $serverVer" "$PASS"
+		elif [ "$getUpdate" = "md5" ]
 		then
-			Print_Output true "MD5 hash of $SCRIPT_NAME does not match - hotfix available - $serverver" "$PASS"
+			Print_Output true "MD5 hash of $SCRIPT_NAME does NOT match - hotfix available - $serverVer" "$PASS"
 		fi
 
-		if [ "$isupdate" != "false" ]
+		if [ "$getUpdate" != "false" ]
 		then
 			printf "\n${BOLD}Do you want to continue with the update? (y/n)${CLEARFORMAT}  "
 			read -r confirm
@@ -1118,10 +1132,10 @@ Update_Version()
 						Print_Output true "$SCRIPT_NAME script file was NOT updated. Download failed." "$ERR"
 						Clear_Lock ; return 1
 					fi
-					Print_Output true "$SCRIPT_NAME successfully updated - restarting firewall to apply update" "$PASS"
 					chmod 755 "$SCRIPT_FPATH"
-					Set_Version_Custom_Settings local "$serverver"
-					Set_Version_Custom_Settings server "$serverver"
+					Print_Output true "$SCRIPT_NAME was successfully updated - restarting firewall to apply update" "$PASS"
+					Set_Version_Custom_Settings local "$serverVer"
+					Set_Version_Custom_Settings server "$serverVer"
 					Clear_Lock
 					service restart_firewall >/dev/null 2>&1
 					PressEnter
@@ -1135,15 +1149,21 @@ Update_Version()
 				;;
 			esac
 		else
-			Print_Output true "No updates available - latest is $localver" "$WARN"
+			Print_Output true "No updates available - latest is $localVers" "$WARN"
 			Clear_Lock
 		fi
 	fi
 
 	if [ "$1" = "force" ]
 	then
-		serverver="$(curl -fsL --retry 4 --retry-delay 5 "$SCRIPT_REPO/$SCRIPT_NAME.sh" | grep 'SCRIPT_VERSION=' | grep -m1 -oE "$scriptVersRegExp")"
-		Print_Output true "Downloading latest version ($serverver) of $SCRIPT_NAME" "$PASS"
+		if ! Download_File "$SCRIPT_REPO" "${SCRIPT_NAME}.sh" "$SCRIPT_FPATH"
+		then
+			Print_Output true "$SCRIPT_NAME script file was NOT updated. Download failed." "$ERR"
+			Clear_Lock ; return 1
+		fi
+		chmod 755 "$SCRIPT_FPATH"
+		serverVer="$(grep '^readonly SCRIPT_VERSION=' "$SCRIPT_FPATH" | grep -m1 -oE "$scriptVersRegExp")"
+		Print_Output true "Downloading latest version ($serverVer) of $SCRIPT_NAME" "$PASS"
 
 		Update_File shared-jy.tar.gz
 		Update_File YazFi_www.asp
@@ -1152,15 +1172,9 @@ Update_Version()
 		Update_File LICENSE
 		Update_File "$SCRIPT_CONF"
 
-		if ! Download_File "$SCRIPT_REPO" "${SCRIPT_NAME}.sh" "$SCRIPT_FPATH"
-		then
-			Print_Output true "$SCRIPT_NAME script file was NOT updated. Download failed." "$ERR"
-			Clear_Lock ; return 1
-		fi
-        Print_Output true "$SCRIPT_NAME successfully updated - restarting firewall to apply update" "$PASS"
-		chmod 755 "$SCRIPT_FPATH"
-		Set_Version_Custom_Settings local "$serverver"
-		Set_Version_Custom_Settings server "$serverver"
+        Print_Output true "$SCRIPT_NAME was successfully updated - restarting firewall to apply update" "$PASS"
+		Set_Version_Custom_Settings local "$serverVer"
+		Set_Version_Custom_Settings server "$serverVer"
 		Clear_Lock
 		service restart_firewall >/dev/null 2>&1
 		if [ $# -lt 2 ] || [ -z "$2" ]
@@ -1199,98 +1213,97 @@ Update_File()
 {
 	if [ "$1" = "YazFi_www.asp" ]
 	then
-		tmpfile="/tmp/$1" ; rm -f "$tmpfile"
+		tempFileASP="${TEMP_DIR}/${1}.TMP.ASP" ; rm -f "$tempFileASP"
 		if [ -s "${SCRIPT_DIR}/$1" ]
 		then
-			if ! Download_File "$SCRIPT_REPO" "$1" "$tmpfile"
+			if ! Download_File "$SCRIPT_REPO" "$1" "$tempFileASP"
 			then
 				Print_Output true "The WebUI file [$1] was NOT updated. Download failed." "$ERR"
 				return 1
 			fi
-			if ! diff -q "$tmpfile" "${SCRIPT_DIR}/$1" >/dev/null 2>&1
+			if ! diff -q "$tempFileASP" "${SCRIPT_DIR}/$1" >/dev/null 2>&1
 			then
 				Get_WebUI_Page "${SCRIPT_DIR}/$1"
 				sed -i "\\~$MyWebPage~d" "$TEMP_MENU_TREE"
 				rm -f "${SCRIPT_WEBPAGE_DIR}/$MyWebPage" 2>/dev/null
-				mv -f "$tmpfile" "${SCRIPT_DIR}/$1"
+				mv -f "$tempFileASP" "${SCRIPT_DIR}/$1"
 				chmod 644 "${SCRIPT_DIR}/$1"
-				Print_Output true "New version of $1 downloaded" "$PASS"
+				Print_Output true "New version of $1 was downloaded" "$PASS"
 				Mount_WebUI
 			fi
-			rm -f "$tmpfile"
+			rm -f "$tempFileASP"
 		else
 			if ! Download_File "$SCRIPT_REPO" "$1" "${SCRIPT_DIR}/$1"
 			then
 				Print_Output true "The WebUI file [$1] was NOT updated. Download failed." "$ERR"
 				return 1
 			fi
-			Print_Output true "New version of $1 downloaded" "$PASS"
+			Print_Output true "New version of $1 was downloaded" "$PASS"
 			Mount_WebUI
 		fi
 	elif [ "$1" = "shared-jy.tar.gz" ]
 	then
-		if [ ! -s "${SHARED_DIR}/${1}.md5" ]
+		tempFileMD5="${TEMP_DIR}/${1}.TMP.MD5" ; rm -f "$tempFileMD5"
+		if ! Download_File "$SHARED_REPO" "${1}.md5" "$tempFileMD5"
 		then
-			Download_File "$SHARED_REPO" "$1" "${SHARED_DIR}/$1"
-			Download_File "$SHARED_REPO" "${1}.md5" "${SHARED_DIR}/${1}.md5"
+			Print_Output true "Download failed for shared archive file [$1]" "$ERR"
+			return 1
+		fi
+		if [ ! -s "${SHARED_DIR}/${1}.md5" ] || \
+		   [ "$(cat "${SHARED_DIR}/${1}.md5")" != "$(cat "$tempFileMD5")" ]
+		then
+			if ! Download_File "$SHARED_REPO" "$1" "${SHARED_DIR}/$1"
+			then
+				rm -f "$tempFileMD5"
+				Print_Output true "Download failed for shared archive file [$1]" "$ERR"
+				return 1
+			fi
+			mv -f "$tempFileMD5" "${SHARED_DIR}/${1}.md5"
+			chmod 644 "${SHARED_DIR}/${1}.md5"
 			tar -xzf "${SHARED_DIR}/$1" -C "$SHARED_DIR"
 			rm -f "${SHARED_DIR}/$1"
-			Print_Output true "New version of $1 downloaded" "$PASS"
+			Print_Output true "New version of $1 was downloaded" "$PASS"
 		else
-			localmd5="$(cat "${SHARED_DIR}/${1}.md5")"
-			remotemd5="$(curl -fsL --retry 4 --retry-delay 5 "${SHARED_REPO}/${1}.md5")"
-			if [ "$localmd5" != "$remotemd5" ]
-			then
-				Download_File "$SHARED_REPO" "$1" "${SHARED_DIR}/$1"
-				Download_File "$SHARED_REPO" "${1}.md5" "${SHARED_DIR}/${1}.md5"
-				tar -xzf "${SHARED_DIR}/$1" -C "$SHARED_DIR"
-				rm -f "${SHARED_DIR}/$1"
-				Print_Output true "New version of $1 downloaded" "$PASS"
-			fi
+			rm -f "$tempFileMD5"
 		fi
 	elif [ "$1" = "YazFi_networkmap.js" ]
 	then
-		tmpfile="/tmp/$1" ; rm -f "$tmpfile"
-		if ! Download_File "$SCRIPT_REPO" "$1" "$tmpfile"
+		tempFileJS="${TEMP_DIR}/${1}.TMP.JS" ; rm -f "$tempFileJS"
+		if ! Download_File "$SCRIPT_REPO" "$1" "$tempFileJS"
 		then
 			Print_Output true "The Network Map JS source file [$1] was NOT updated. Download failed." "$ERR"
 			return 1
 		fi
-		if ! grep -qF "$NETWORKMAP_MARKER" "$tmpfile"
+		if ! grep -qF "$NETWORKMAP_MARKER" "$tempFileJS"
 		then
-			Print_Output true "Downloaded $1 failed validation" "$ERR"
-			rm -f "$tmpfile"
+			rm -f "$tempFileJS"
+			Print_Output true "Downloaded file $1 failed validation" "$ERR"
 			return 1
 		fi
-		if [ ! -s "${SCRIPT_DIR}/$1" ]
+		if [ ! -s "${SCRIPT_DIR}/$1" ] || \
+		   ! diff -q "${SCRIPT_DIR}/$1" "$tempFileJS" >/dev/null 2>&1
 		then
-			mv -f "$tmpfile" "${SCRIPT_DIR}/$1"
+			mv -f "$tempFileJS" "${SCRIPT_DIR}/$1"
 			chmod 644 "${SCRIPT_DIR}/$1"
-			Print_Output true "New version of $1 downloaded" "$PASS"
-			NetworkMap_WebUI remount 2>/dev/null
-		elif ! diff -q "$tmpfile" "${SCRIPT_DIR}/$1" >/dev/null 2>&1
-		then
-			mv -f "$tmpfile" "${SCRIPT_DIR}/$1"
-			chmod 644 "${SCRIPT_DIR}/$1"
-			Print_Output true "Latest version of $1 downloaded" "$PASS"
+			Print_Output true "New version of $1 was downloaded" "$PASS"
 			NetworkMap_WebUI remount 2>/dev/null
 		else
-			rm -f "$tmpfile"
+			rm -f "$tempFileJS"
 		fi
 	elif [ "$1" = "README.md" ] || [ "$1" = "LICENSE" ]
 	then
-		tmpfile="/tmp/$1" ; rm -f "$tmpfile"
-		if Download_File "$SCRIPT_REPO" "$1" "$tmpfile" && \
-		   ! diff -q "$tmpfile" "${SCRIPT_DIR}/$1" >/dev/null 2>&1
+		tempFileDOC="${TEMP_DIR}/${1}.TMP.DOC" ; rm -f "$tempFileDOC"
+		if Download_File "$SCRIPT_REPO" "$1" "$tempFileDOC" && \
+		   ! diff -q "$tempFileDOC" "${SCRIPT_DIR}/$1" >/dev/null 2>&1
 		then
-			mv -f "$tmpfile" "${SCRIPT_DIR}/$1"
+			mv -f "$tempFileDOC" "${SCRIPT_DIR}/$1"
 		fi
-		rm -f "$tmpfile"
+		rm -f "$tempFileDOC"
 	elif [ "$1" = "$SCRIPT_CONF" ]
 	then
-		if ! grep -qE "^wl31_|^wl32_|^wl33_" "$SCRIPT_CONF"
+		if ! grep -qE '^wl3[1-3]_.+' "$SCRIPT_CONF"
 		then
-			if Conf_ADD_Download "$SCRIPT_CONF"
+			if Config_ADD_Download "$SCRIPT_CONF"
 			then
 				cat "${SCRIPT_CONF}.ADD.txt" >> "$SCRIPT_CONF"
 				cp -fp "$SCRIPT_CONF" "${SCRIPT_CONF}.bak"
@@ -1574,7 +1587,7 @@ Conf_FixBlanks()
 {
 	if ! Conf_Exists
 	then
-		Conf_Download "$SCRIPT_CONF"
+		Config_Download "$SCRIPT_CONF"
 		Clear_Lock
 		return 1
 	fi
@@ -1694,10 +1707,22 @@ Conf_FixBlanks()
 			Print_Output false "${IFACETMPBLANK}_TWOWAYTOGUEST is blank, setting to false" "$WARN"
 		fi
 
+		if [ -z "$(eval echo '$'"${IFACETMPBLANK}_TWOWAYTOGUEST_MODE")" ]
+		then
+			sed -i -e "s/${IFACETMPBLANK}_TWOWAYTOGUEST_MODE=/${IFACETMPBLANK}_TWOWAYTOGUEST_MODE=NAT/" "$SCRIPT_CONF"
+			Print_Output false "${IFACETMPBLANK}_TWOWAYTOGUEST_MODE is blank, setting to NAT" "$WARN"
+		fi
+
 		if [ -z "$(eval echo '$'"${IFACETMPBLANK}_ONEWAYTOGUEST")" ]
 		then
 			sed -i -e "s/${IFACETMPBLANK}_ONEWAYTOGUEST=/${IFACETMPBLANK}_ONEWAYTOGUEST=false/" "$SCRIPT_CONF"
 			Print_Output false "${IFACETMPBLANK}_ONEWAYTOGUEST is blank, setting to false" "$WARN"
+		fi
+
+		if [ -z "$(eval echo '$'"${IFACETMPBLANK}_ONEWAYTOGUEST_MODE")" ]
+		then
+			sed -i -e "s/${IFACETMPBLANK}_ONEWAYTOGUEST_MODE=/${IFACETMPBLANK}_ONEWAYTOGUEST_MODE=NAT/" "$SCRIPT_CONF"
+			Print_Output false "${IFACETMPBLANK}_ONEWAYTOGUEST_MODE is blank, setting to NAT" "$WARN"
 		fi
 
 		if [ -z "$(eval echo '$'"${IFACETMPBLANK}_CLIENTISOLATION")" ]
@@ -2412,6 +2437,9 @@ Get_WebUI_Page()
 {
 	local webPageFile  webPagePath
 
+	if [ ! -s "$1" ]
+	then MyWebPage="NONE" ; return 1
+	fi
 	MyWebPage="$(_Check_WebGUI_Page_Exists_)"
 
 	for indx in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20
@@ -2491,7 +2519,7 @@ _CheckFor_NetworkMap_SourceJS_()
 ##----------------------------------------##
 ## Modified by Martinski W. [2026-Sep-05] ##
 ##----------------------------------------##
-Conf_Download()
+Config_Download()
 {
 	mkdir -p "$SCRIPT_DIR"
 	Download_File "$SCRIPT_REPO" "${SCRIPT_NAME}.config.example" "$1"
@@ -2503,7 +2531,7 @@ Conf_Download()
 ##-------------------------------------##
 ## Added by Martinski W. [2022-Dec-26] ##
 ##-------------------------------------##
-Conf_ADD_Download()
+Config_ADD_Download()
 {
 	config_ADD="${1}.ADD.txt"
 	Download_File "$SCRIPT_REPO" "${SCRIPT_NAME}.config.ADD.txt" "$config_ADD"
@@ -2543,6 +2571,14 @@ Conf_Exists()
 			do
 				CONFIFACETMP="$(Get_Iface_Var "$CONFIFACE")"
 				sed -i "/^${CONFIFACETMP}_FORCEDNS=/a ${CONFIFACETMP}_ALLOWINTERNET=true" "$SCRIPT_CONF"
+			done
+		fi
+		if ! grep -q "_ONEWAYTOGUEST_MODE=" "$SCRIPT_CONF"
+		then
+			for IFaceID in $IFACELIST_FULL
+			do
+				IFaceVar="$(Get_Iface_Var "$IFaceID")"
+				sed -i "/^${IFaceVar}_CLIENTISOLATION=/a ${IFaceVar}_ONEWAYTOGUEST_MODE=NAT" "$SCRIPT_CONF"
 			done
 		fi
 		if ! grep -q "_TWOWAYTOGUEST_MODE=" "$SCRIPT_CONF"
@@ -2722,6 +2758,7 @@ Firewall_Rules()
 	doTWO_WAYtoGUEST="$(eval echo '$'"$(Get_Iface_Var "$IFACE")_TWOWAYTOGUEST")"
 	doONE_WAYtoGUEST="$(eval echo '$'"$(Get_Iface_Var "$IFACE")_ONEWAYTOGUEST")"
 	TwoWayToGuestMODE="$(_TwoWayToGuest_RoutingType_ check "$IFACE")"
+	OneWayToGuestMODE="$(_OneWayToGuest_RoutingType_ check "$IFACE")"
 
 	case $1 in
 		delete) ACTIONS="-D" ;;
@@ -2762,7 +2799,9 @@ Firewall_Rules()
 		then
 			iptables -D "$FWRD" ! -i "$IFACE_WAN" -o "$IFACE" -j "$LGRJT"
 
-			if [ "$ACTION" = "-D" ] || [ "$doTWO_WAYtoGUEST" = "false" ] || [ "$TwoWayToGuestMODE" = "NAT" ]
+			if [ "$ACTION" = "-D" ] || \
+			   { [ "$doTWO_WAYtoGUEST" = "true" ] && [ "$TwoWayToGuestMODE" = "NAT" ] ; } || \
+			   { [ "$doONE_WAYtoGUEST" = "true" ] && [ "$OneWayToGuestMODE" = "NAT" ] ; }
 			then
 				iptables -t nat "$ACTION" POSTROUTING -s "$LAN_IPcidr" -d "$GuestNetIPcidr" -o "$IFACE" -m comment --comment "LAN to $GuestNetBandID" -j MASQUERADE
 			fi
@@ -3421,7 +3460,7 @@ Config_Networks()
 
 	if ! Conf_Exists
 	then
-		Conf_Download "$SCRIPT_CONF"
+		Config_Download "$SCRIPT_CONF"
 		Clear_Lock
 		return 1
 	fi
@@ -3759,8 +3798,13 @@ _HandleInvalidMenuOption_()
 ##----------------------------------------##
 MainMenu()
 {
-	local menuOption  configChangesMade=false  TwoWayToGuestENABLED
+	local menuOption  configChangesMade=false
+	local TwoWayToGuestENABLED  OneWayToGuestENABLED
 
+	if _Check_OneWayToGuest_Enabled_
+	then OneWayToGuestENABLED=true
+	else OneWayToGuestENABLED=false
+	fi
 	if _Check_TwoWayToGuest_Enabled_
 	then TwoWayToGuestENABLED=true
 	else TwoWayToGuestENABLED=false
@@ -3775,11 +3819,11 @@ MainMenu()
 	printf "  ${GRNct}3${CLRct}.  Edit %s config\n" "$SCRIPT_NAME"
 	printf "  ${GRNct}4${CLRct}.  Edit Guest Network config (SSID + passphrase)\n\n"
 
-	if "$TwoWayToGuestENABLED"
+	if "$OneWayToGuestENABLED" || "$TwoWayToGuestENABLED"
 	then
-		printf " ${GRNct}tw${CLRct}.  Set Guest Network Two-Way Routing Type\n\n"
+		printf " ${GRNct}rt${CLRct}.  Set Guest Network One/Two-Way Routing Type\n\n"
 	else
-		printf " ${GRAYEDct}tw${CLRct}.  ${GRAYEDct}Set Guest Network Two-Way Routing Type${CLRct}\n\n"
+		printf " ${GRAYEDct}rt${CLRct}.  ${GRAYEDct}Set Guest Network One/Two-Way Routing Type${CLRct}\n\n"
 	fi
 
 	if [ -x /opt/bin/opkg ] && [ -x /opt/bin/qrencode ]
@@ -3841,16 +3885,18 @@ MainMenu()
 				fi
 				break
 			;;
-			tw)
-				if "$TwoWayToGuestENABLED"
+			rt)
+				if "$OneWayToGuestENABLED" || "$TwoWayToGuestENABLED"
 				then
 					configChangesMade=false
-					_Menu_TwoWayToGuest_RoutingType_
+					_Menu_OneTwoWayToGuest_RoutingType_
 					if "$configChangesMade"
 					then . "$SCRIPT_CONF"
 					fi
 				else
-					_HandleInvalidMenuOption_
+					printf "\n ${REDct}Guest Network One/Two-Way Routing Type is NOT available.${CLRct}"
+					printf "\n All Guest Network One/Two-Way options are found disabled.\n\n"
+					PressEnter
 				fi
 				break
 			;;
@@ -3997,10 +4043,10 @@ Menu_Install()
 
 	if ! Conf_Exists
 	then
-		Conf_Download "$SCRIPT_CONF"
+		Config_Download "$SCRIPT_CONF" && . "$SCRIPT_CONF"
 	else
 		Print_Output false "Existing $SCRIPT_CONF found. This will be kept by $SCRIPT_NAME" "$WARN"
-		Conf_Download "${SCRIPT_CONF}.example"
+		Config_Download "${SCRIPT_CONF}.example"
 	fi
 
 	Update_File README.md
@@ -4053,7 +4099,7 @@ Menu_Edit()
 	local exitMenu=false  textEditor=""
 	if ! Conf_Exists
 	then
-		Conf_Download "$SCRIPT_CONF"
+		Config_Download "$SCRIPT_CONF" && . "$SCRIPT_CONF"
 	fi
 
 	printf "\n ${BOLD}Text editors available:${CLRct}\n\n"
@@ -4102,26 +4148,33 @@ Menu_Edit()
 ##----------------------------------------##
 Menu_GuestConfig()
 {
-	local COUNTER  exitMenu=false  isIFACE_VALID
-	local IFaceID  selectedIFACE  changesMade=false
-	local guestNAMEstr  guestSSIDstr  guestPSWDstr
-    local exitRegExp="([Ee](xit)?|EXIT)"
+	local ifaceCount  addListGap  exitMenu=false
+	local IFaceID  IFaceVar  selectedIFACE  isIFACE_VALID
+	local guestNAMEstr  guestSSIDstr  guestPSWDstr  validOptions=""
+    local exitRegExp="([Ee](xit)?|EXIT)"  changesMade=false
 
 	ScriptHeader
 	printf "\n ${BOLD}Select a Guest Network to configure:${CLRct}\n\n"
 
-	COUNTER=1
+	ifaceCount=1
+	addListGap=false
+
 	for IFaceID in $IFACELIST_ORIG
 	do
-		if [ "$((COUNTER % 4))" -eq 0 ]
-		then printf "\n"
-		fi
-		if [ "$(eval echo '$'"$(Get_Iface_Var "$IFaceID")_ENABLED")" = "true" ] && \
+		IFaceVar="$(Get_Iface_Var "$IFaceID")"
+		if [ "$(eval echo '$'"${IFaceVar}_ENABLED")" = "true" ] && \
 		   Validate_IFACE_Enabled "$IFaceID" silent
 		then
-			printf "  ${GRNct}%s${CLRct}. %s (SSID: %s)\n" "$COUNTER" "$(Menu_Get_Guest_Name "$IFaceID")" "$(_NVRAM_Get_ "${IFaceID}_ssid")"
+			if "$addListGap"
+			then addListGap=false ; [ -n "$validOptions" ] && echo
+			fi
+			validOptions="${validOptions:+$validOptions }$ifaceCount"
+			printf "  ${GRNct}%s${CLRct}. %s (SSID: %s)\n" "$ifaceCount" "$(Menu_Get_Guest_Name "$IFaceID")" "$(_NVRAM_Get_ "${IFaceID}_ssid")"
 		fi
-		COUNTER="$((COUNTER + 1))"
+		if [ "$((ifaceCount % 3))" -eq 0 ]
+		then addListGap=true
+		fi
+		ifaceCount="$((ifaceCount + 1))"
 	done
 	printf "\n  ${GRNct}e${CLRct}. Back to main menu\n"
 
@@ -4301,27 +4354,31 @@ Menu_GuestConfig()
 ##----------------------------------------##
 Menu_QRCode()
 {
-	local COUNTER  exitMenu=false  validOptions
-	local IFaceID  selectedIFACE  isIFACE_VALID
+	local ifaceCount  addListGap  exitMenu=false  validOptions=""
+	local IFaceID  IFaceVar  selectedIFACE  isIFACE_VALID
 
 	ScriptHeader
 	printf "\n ${BOLD}Select a Guest Network for QR Code:${CLRct}\n\n"
 
-	COUNTER=1
-	validOptions=""
+	ifaceCount=1
+	addListGap=false
 
 	for IFaceID in $IFACELIST_ORIG
 	do
-		if [ "$((COUNTER % 4))" -eq 0 ]
-		then printf "\n"
-		fi
-		if [ "$(eval echo '$'"$(Get_Iface_Var "$IFaceID")_ENABLED")" = "true" ] && \
+		IFaceVar="$(Get_Iface_Var "$IFaceID")"
+		if [ "$(eval echo '$'"${IFaceVar}_ENABLED")" = "true" ] && \
 		   Validate_IFACE_Enabled "$IFaceID" silent
 		then
-			validOptions="${validOptions:+$validOptions }$COUNTER"
-			printf "  ${GRNct}%s${CLRct}. %s (SSID: %s)\n" "$COUNTER" "$(Menu_Get_Guest_Name "$IFaceID")" "$(_NVRAM_Get_ "${IFaceID}_ssid")"
+			if "$addListGap"
+			then addListGap=false ; [ -n "$validOptions" ] && echo
+			fi
+			validOptions="${validOptions:+$validOptions }$ifaceCount"
+			printf "  ${GRNct}%s${CLRct}. %s (SSID: %s)\n" "$ifaceCount" "$(Menu_Get_Guest_Name "$IFaceID")" "$(_NVRAM_Get_ "${IFaceID}_ssid")"
 		fi
-		COUNTER="$((COUNTER + 1))"
+		if [ "$((ifaceCount % 3))" -eq 0 ]
+		then addListGap=true
+		fi
+		ifaceCount="$((ifaceCount + 1))"
 	done
 	printf "\n  ${GRNct}e${CLRct}. Back to main menu\n"
 
@@ -4376,28 +4433,75 @@ Menu_QRCode()
 ##-------------------------------------##
 ## Added by Martinski W. [2026-Aug-20] ##
 ##-------------------------------------##
+_OneWayToGuest_RoutingType_()
+{
+    if [ $# -lt 2 ] || [ -z "$1" ] || [ -z "$2" ]
+    then return 1
+    fi
+	local modeValue  IFaceVar
+
+	IFaceVar="$(Get_Iface_Var "$2")_ONEWAYTOGUEST_MODE"
+	modeValue="$(eval echo '$'"$IFaceVar")"
+
+	case "$1" in
+		check)
+			echo "${modeValue:=NAT}"
+			;;
+		update)
+			if [ "$modeValue" != "NAT" ]
+			then modeValue="NAT"
+			else modeValue="FILTER"
+			fi
+			sed -i "s/^${IFaceVar}=.*/${IFaceVar}=$modeValue/" "$SCRIPT_CONF"
+			;;
+	esac
+}
+
+##-------------------------------------##
+## Added by Martinski W. [2026-Aug-20] ##
+##-------------------------------------##
 _TwoWayToGuest_RoutingType_()
 {
     if [ $# -lt 2 ] || [ -z "$1" ] || [ -z "$2" ]
     then return 1
     fi
-	local settingValue  IFaceVar
+	local modeValue  IFaceVar
+
+	IFaceVar="$(Get_Iface_Var "$2")_TWOWAYTOGUEST_MODE"
+	modeValue="$(eval echo '$'"$IFaceVar")"
 
 	case "$1" in
 		check)
-			settingValue="$(eval echo '$'"$(Get_Iface_Var "$2")_TWOWAYTOGUEST_MODE")"
-			echo "${settingValue:=NAT}"
+			echo "${modeValue:=NAT}"
 			;;
 		update)
-			IFaceVar="$(Get_Iface_Var "$2")"
-			settingValue="$(eval echo '$'"${IFaceVar}_TWOWAYTOGUEST_MODE")"
-			if [ "$settingValue" != "NAT" ]
-			then settingValue="NAT"
-			else settingValue="FILTER"
+			if [ "$modeValue" != "NAT" ]
+			then modeValue="NAT"
+			else modeValue="FILTER"
 			fi
-			sed -i "s/^${IFaceVar}_TWOWAYTOGUEST_MODE=.*/${IFaceVar}_TWOWAYTOGUEST_MODE=$settingValue/" "$SCRIPT_CONF"
+			sed -i "s/^${IFaceVar}=.*/${IFaceVar}=$modeValue/" "$SCRIPT_CONF"
 			;;
 	esac
+}
+
+##-------------------------------------##
+## Added by Martinski W. [2026-Aug-20] ##
+##-------------------------------------##
+_Check_OneWayToGuest_Enabled_()
+{
+	local IFaceID  IFaceVar  isOptionEnabled=false
+	for IFaceID in $IFACELIST
+	do
+		IFaceVar="$(Get_Iface_Var "$IFaceID")"
+		if [ "$(eval echo '$'"${IFaceVar}_ENABLED")" = "true" ] && \
+		   [ "$(eval echo '$'"${IFaceVar}_ONEWAYTOGUEST")" = "true" ] && \
+		   Validate_IFACE_Enabled "$IFaceID" silent
+		then
+			isOptionEnabled=true
+			break
+		fi
+	done
+	"$isOptionEnabled" && return 0 || return 1
 }
 
 ##-------------------------------------##
@@ -4423,39 +4527,60 @@ _Check_TwoWayToGuest_Enabled_()
 ##-------------------------------------##
 ## Added by Martinski W. [2026-Aug-20] ##
 ##-------------------------------------##
-_Menu_TwoWayToGuest_RoutingType_()
+_Menu_OneTwoWayToGuest_RoutingType_()
 {
-	local counter  exitMenu=false
-	local TwoWayToGuestModeStr  validOptions
+	local ifaceCount  addListGap  exitMenu=false
+	local theWayToGuestModeStr  validOptions=""
 	local IFaceID  IFaceVar  selectedIFACE  isIFACE_VALID
+	local theONE_WAYtoGUEST  theTWO_WAYtoGUEST
+	local OneWayToGuestMODE  TwoWayToGuestMODE
 
 	ScriptHeader
-	printf "\n ${BOLD}Set the Guest Network Two-Way Routing Type:${CLRct}\n\n"
+	printf "\n ${BOLD}Set the Guest Network One/Two-Way Routing Type:${CLRct}\n\n"
 
-	counter=1
-	validOptions=""
+	ifaceCount=1
+	addListGap=false
 	. "$SCRIPT_CONF"
 
 	for IFaceID in $IFACELIST_ORIG
 	do
-		if [ "$((counter % 4))" -eq 0 ]
-		then printf "\n"
-		fi
 		IFaceVar="$(Get_Iface_Var "$IFaceID")"
+		theONE_WAYtoGUEST="$(eval echo '$'"${IFaceVar}_ONEWAYTOGUEST")"
+		theTWO_WAYtoGUEST="$(eval echo '$'"${IFaceVar}_TWOWAYTOGUEST")"
+		OneWayToGuestMODE="$(eval echo '$'"${IFaceVar}_ONEWAYTOGUEST_MODE")"
+		TwoWayToGuestMODE="$(eval echo '$'"${IFaceVar}_TWOWAYTOGUEST_MODE")"
+
 		if [ "$(eval echo '$'"${IFaceVar}_ENABLED")" = "true" ] && \
-		   [ "$(eval echo '$'"${IFaceVar}_TWOWAYTOGUEST")" = "true" ] && \
-		   Validate_IFACE_Enabled "$IFaceID" silent
+		   { [ "$theONE_WAYtoGUEST" = "true" ] || [ "$theTWO_WAYtoGUEST" = "true" ]
+		   } && Validate_IFACE_Enabled "$IFaceID" silent
 		then
-			validOptions="${validOptions:+$validOptions }$counter"
-			if [ "$(_TwoWayToGuest_RoutingType_ check "$IFaceID")" = "NAT" ]
-			then TwoWayToGuestModeStr="NAT PostRouting"
-			else TwoWayToGuestModeStr="FILTER Forward"
+			if "$addListGap"
+			then addListGap=false ; [ -n "$validOptions" ] && echo
 			fi
-			printf "  ${GRNct}%s${CLRct}. %s (SSID: %s)\n" "$counter" "$(Menu_Get_Guest_Name "$IFaceID")" "$(_NVRAM_Get_ "${IFaceID}_ssid")"
-			printf "     [Currently: ${GRNct}%s${CLRct}]\n" "$TwoWayToGuestModeStr"
-        
+			validOptions="${validOptions:+$validOptions }$ifaceCount"
+
+			if [ "$theONE_WAYtoGUEST" = "true" ]
+			then
+				if [ "$OneWayToGuestMODE" = "NAT" ]
+				then theWayToGuestModeStr="${SETTING}One-Way${CLRct}: ${GRNct}NAT PostRouting${CLRct}"
+				else theWayToGuestModeStr="${SETTING}One-Way${CLRct}: ${GRNct}FILTER Forward${CLRct}"
+				fi
+			elif [ "$theTWO_WAYtoGUEST" = "true" ]
+			then
+				if [ "$TwoWayToGuestMODE" = "NAT" ]
+				then theWayToGuestModeStr="${SETTING}Two-Way${CLRct}: ${GRNct}NAT PostRouting${CLRct}"
+				else theWayToGuestModeStr="${SETTING}Two-Way${CLRct}: ${GRNct}FILTER Forward${CLRct}"
+				fi
+			fi
+
+			printf "  ${GRNct}%s${CLRct}. %s (SSID: %s)\n" "$ifaceCount" "$(Menu_Get_Guest_Name "$IFaceID")" "$(_NVRAM_Get_ "${IFaceID}_ssid")"
+			printf "     [$theWayToGuestModeStr]\n"
         fi
-		counter="$((counter + 1))"
+
+		if [ "$((ifaceCount % 3))" -eq 0 ]
+		then addListGap=true
+		fi
+		ifaceCount="$((ifaceCount + 1))"
 	done
 	printf "\n  ${GRNct}e${CLRct}. Back to main menu\n"
 
@@ -4491,7 +4616,7 @@ _Menu_TwoWayToGuest_RoutingType_()
 				printf "\n Please choose a different option.\n"
 			elif ! echo "$validOptions" | grep -qw "$selectedGuest"
 			then
-				printf "\n The Guest Network [${MGNTct}%s${CLRct}] has Two-Way-to-Guest option DISABLED." "$selectedIFACE"
+				printf "\n The Guest Network [${MGNTct}%s${CLRct}] has One/Two-Way option DISABLED." "$selectedIFACE"
 				printf "\n Please choose a different option.\n"
 			else
 				isIFACE_VALID=true
@@ -4514,11 +4639,19 @@ _Menu_TwoWayToGuest_RoutingType_()
 	if "$isIFACE_VALID"
 	then
 		configChangesMade=true
-		_TwoWayToGuest_RoutingType_ update "$selectedIFACE"
+		IFaceVar="$(Get_Iface_Var "$selectedIFACE")"
+		theONE_WAYtoGUEST="$(eval echo '$'"${IFaceVar}_ONEWAYTOGUEST")"
+		theTWO_WAYtoGUEST="$(eval echo '$'"${IFaceVar}_TWOWAYTOGUEST")"
+
+        if [ "$theONE_WAYtoGUEST" = "true" ]
+        then _OneWayToGuest_RoutingType_ update "$selectedIFACE"
+        elif [ "$theTWO_WAYtoGUEST" = "true" ]
+        then _TwoWayToGuest_RoutingType_ update "$selectedIFACE"
+        fi
 	else
 		echo ; PressEnter
 	fi
-	_Menu_TwoWayToGuest_RoutingType_
+	_Menu_OneTwoWayToGuest_RoutingType_
 }
 
 ##-------------------------------------##
@@ -4842,7 +4975,7 @@ Menu_Uninstall()
 		mount -o bind "$TEMP_MENU_TREE" /www/require/modules/menuTree.js
 	fi
 	flock -u "$FD"
-	rm -f "$SCRIPT_DIR/YazFi_www.asp" 2>/dev/null
+	rm -f "$SCRIPT_DIR/YazFi_www.asp"
 
 	while true
 	do
@@ -5189,6 +5322,10 @@ case "$1" in
 		shift
 		ScriptUpdateFromAMTM "$@"
 		exit "$?"
+	;;
+	checkupdate)
+		Update_Check
+		exit 0
 	;;
 	setversion)
 		Set_Version_Custom_Settings local "$SCRIPT_VERSION"
