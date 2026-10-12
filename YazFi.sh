@@ -17,7 +17,7 @@
 ##       Guest Network DHCP script and for       ##
 ##            AsusWRT-Merlin firmware            ##
 ###################################################
-# Last Modified: 2026-Sep-08
+# Last Modified: 2026-Oct-11
 #--------------------------------------------------
 
 ######       Shellcheck directives     ######
@@ -42,7 +42,7 @@
 readonly SCRIPT_NAME="YazFi"
 readonly YAZFI_VERSION="v4.4.13"
 readonly SCRIPT_VERSION="v4.4.13"
-readonly SCRIPT_VERSTAG="26090823"
+readonly SCRIPT_VERSTAG="26101108"
 SCRIPT_BRANCH="develop"
 SCRIPT_REPO="https://raw.githubusercontent.com/AMTM-OSR/${SCRIPT_NAME}/$SCRIPT_BRANCH"
 
@@ -95,6 +95,11 @@ unset LD_LIBRARY_PATH
 
 # Give higher priority to built-in binaries #
 export PATH="/bin:/usr/bin:/sbin:/usr/sbin:$PATH"
+
+if [ -z "$(which crontab)" ]
+then cronListCmd="cru l"
+else cronListCmd="crontab -l"
+fi
 
 if [ -t 0 ] && ! tty | grep -qwi "NOT"
 then readonly isInteractive=true
@@ -866,18 +871,21 @@ Auto_OpenVPNEvent()
 	esac
 }
 
+##----------------------------------------##
+## Modified by Martinski W. [2026-Oct-11] ##
+##----------------------------------------##
 Auto_Cron()
 {
 	case $1 in
 		create)
-			STARTUPLINECOUNT="$(cru l | grep -c "$SCRIPT_NAME")"
+			STARTUPLINECOUNT="$(eval $cronListCmd | grep -c "$SCRIPT_NAME")"
 			if [ "$STARTUPLINECOUNT" -eq 0 ]
 			then
 				cru a "$SCRIPT_NAME" "*/10 * * * * $SCRIPT_FPATH check"
 			fi
 		;;
 		delete)
-			STARTUPLINECOUNT="$(cru l | grep -c "$SCRIPT_NAME")"
+			STARTUPLINECOUNT="$(eval $cronListCmd | grep -c "$SCRIPT_NAME")"
 			if [ "$STARTUPLINECOUNT" -gt 0 ]
 			then
 				cru d "$SCRIPT_NAME"
@@ -1258,9 +1266,15 @@ Update_File()
 				Print_Output true "Download failed for shared archive file [$1]" "$ERR"
 				return 1
 			fi
-			mv -f "$tempFileMD5" "${SHARED_DIR}/${1}.md5"
-			chmod 644 "${SHARED_DIR}/${1}.md5"
-			tar -xzf "${SHARED_DIR}/$1" -C "$SHARED_DIR"
+			if tar -xzf "${SHARED_DIR}/$1" -C "$SHARED_DIR"
+			then
+				mv -f "$tempFileMD5" "${SHARED_DIR}/${1}.md5"
+				chmod 644 "${SHARED_DIR}/${1}.md5"
+			else
+				rm -f "$tempFileMD5" "${SHARED_DIR}/$1"
+				Print_Output true "Download failed for shared archive file [$1]" "$ERR"
+				return 1
+			fi
 			rm -f "${SHARED_DIR}/$1"
 			Print_Output true "New version of $1 was downloaded" "$PASS"
 		else
@@ -2343,7 +2357,8 @@ Download_File()
       [ -z "$httpStatusSTR" ] && [ -s "$tempFilePathDL" ]
    then
        mv -f "$tempFilePathDL" "$theDestFPath"
-       dos2unix "$theDestFPath" ; chmod 644 "$theDestFPath"
+       [ "${theDestFName##*.}" != 'gz' ] && dos2unix "$theDestFPath"
+       chmod 644 "$theDestFPath"
    else
        if [ "$curlRetCode" -eq 0 ] && [ -n "$httpStatusSTR" ]
        then
