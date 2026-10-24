@@ -17,7 +17,7 @@
 ##       Guest Network DHCP script and for       ##
 ##            AsusWRT-Merlin firmware            ##
 ###################################################
-# Last Modified: 2026-Oct-11
+# Last Modified: 2026-Oct-23
 #--------------------------------------------------
 
 ######       Shellcheck directives     ######
@@ -42,7 +42,7 @@
 readonly SCRIPT_NAME="YazFi"
 readonly YAZFI_VERSION="v4.4.13"
 readonly SCRIPT_VERSION="v4.4.13"
-readonly SCRIPT_VERSTAG="26101108"
+readonly SCRIPT_VERSTAG="26102323"
 SCRIPT_BRANCH="develop"
 SCRIPT_REPO="https://raw.githubusercontent.com/AMTM-OSR/${SCRIPT_NAME}/$SCRIPT_BRANCH"
 
@@ -140,24 +140,36 @@ Print_Output()
 }
 
 ##-------------------------------------##
+## Added by Martinski W. [2026-Oct-23] ##
+##-------------------------------------##
+_GetUpTimeCSecs_()
+{ awk -F' ' '{ printf "%d\n", int($1*100)}' /proc/uptime ; }
+
+##-------------------------------------##
 ## Added by Martinski W. [2026-Sep-05] ##
 ##-------------------------------------##
-readonly nvramInitUSleep=10
+readonly nvramInitUSleep=20
 readonly nvramWaitUSleep=50
-readonly nvramWaitFactor=20000
-readonly nvramWaitSecMAX=2
-readonly nvramWaitCntMAX="$((nvramWaitSecMAX * nvramWaitFactor))"
-readonly nvramValueTempFPath="${TEMP_DIR}/nvramValue_${SCRIPT_NAME}_$$.TMP.TXT"
+readonly nvramWaitCntMAX=5000
+readonly nvramCentiSecsN=250
+readonly nvramCmdTriesMAX=3
+readonly nvramGetTmpFPath="${TEMP_DIR}/nvramGET_${SCRIPT_NAME}_$$.GET"
 ##-------------------------------------##
-_NVRAM_Get_()
+_nvramGet_()
 {
    local nvramProcID  nvramProcOK=false  retCode=1
-   local waitCountNUM=0  logMsgStr  nvramKeyValue=""
+   local waitCountNUM=0  logMsgStr
+   local startCSecs  nowCSecs  maxCSecs  diffCSecs=0
 
-   printf '' > "$nvramValueTempFPath"
-   nvram get "$1" > "$nvramValueTempFPath" &
+   nvramKeyValue=""
+   printf '' > "$nvramGetTmpFPath"
+   nvram get "$1" > "$nvramGetTmpFPath" &
    nvramProcID="$!"
    usleep "$nvramInitUSleep"
+
+   startCSecs="$(_GetUpTimeCSecs_)"
+   nowCSecs="$startCSecs"
+   maxCSecs="$((startCSecs + nvramCentiSecsN))"
 
    while true
    do
@@ -165,28 +177,65 @@ _NVRAM_Get_()
        then nvramProcOK=true ; break
        fi
        usleep "$nvramWaitUSleep"
+       nowCSecs="$(_GetUpTimeCSecs_)"
        waitCountNUM="$((waitCountNUM + 1))"
-       if [ "$waitCountNUM" -ge "$nvramWaitCntMAX" ]
+       if [ "$nowCSecs" -gt "$maxCSecs" ] || \
+          [ "$waitCountNUM" -ge "$nvramWaitCntMAX" ]
        then break
        fi
    done
 
    if kill -EXIT "$nvramProcID" 2>/dev/null
    then
-       nvramProcOK=false
+       retCode=127 ; nvramProcOK=false
        kill -KILL "$nvramProcID" 2>/dev/null ; wait "$nvramProcID"
-       logMsgStr="**ALERT**: Wait timeout [$nvramWaitSecMAX secs] for 'nvram get $1' command expired."
+       if [ "$nowCSecs" -gt "$startCSecs" ]
+       then diffCSecs="$((nowCSecs - startCSecs))"
+       fi
+       logMsgStr="**ALERT**: Wait timeout [Count=$waitCountNUM, CSecs=$diffCSecs] for 'nvram GET $1' command was reached."
        Print_Output true "$logMsgStr" "$ERR"
    fi
-   if "$nvramProcOK" && [ -s "$nvramValueTempFPath" ]
+   if "$nvramProcOK"
    then
-       nvramKeyValue="$(cat "$nvramValueTempFPath")"
        retCode=0
+       [ -s "$nvramGetTmpFPath" ] && \
+       nvramKeyValue="$(cat "$nvramGetTmpFPath")"
    fi
 
-   rm -f "$nvramValueTempFPath"
-   echo "$nvramKeyValue"
+   rm -f "$nvramGetTmpFPath"
    return "$retCode"
+}
+
+##-------------------------------------##
+## Added by Martinski W. [2026-Oct-23] ##
+##-------------------------------------##
+_NVRAM_Get_()
+{
+    local retCode  cmdNumTries=0  logMsgStr
+    local nvramKeyValue=""  nvramCmdOK=false
+
+    while true
+    do
+        _nvramGet_ "$1"
+        retCode="$?"
+        if [ "$retCode" -eq 0 ]
+        then nvramCmdOK=true ; break
+        fi
+        if [ "$((++cmdNumTries))" -ge "$nvramCmdTriesMAX" ] 
+        then break
+        fi
+        sleep 1
+    done
+
+    if "$nvramCmdOK"
+    then
+        echo "$nvramKeyValue"
+    else
+        echo
+        logMsgStr="**ERROR**: Maximum number of tries [Count=$cmdNumTries] for 'nvram GET $1' command was reached."
+        Print_Output true "$logMsgStr" "$ERR"
+    fi
+    return "$retCode"
 }
 
 ##----------------------------------------##
@@ -2386,9 +2435,9 @@ Download_File()
 ##----------------------------------------##
 Get_WebUI_URL()
 {
-	local urlPage  urlProto  urlDomain  urlPort  lanPort
+	local urlPage  urlProto  lanDomain  urlDomain  lanPort  urlPort
 
-	if [ ! -f "$TEMP_MENU_TREE" ]
+	if [ ! -s "$TEMP_MENU_TREE" ]
 	then
 		echo "**ERROR**: WebUI page NOT mounted"
 		return 1
@@ -2396,23 +2445,27 @@ Get_WebUI_URL()
 
 	urlPage="$(sed -nE "/$SCRIPT_NAME/ s/.*url\: \"(user[0-9]+\.asp)\".*/\1/p" "$TEMP_MENU_TREE")"
 
-	if [ "$(_NVRAM_Get_ http_enable)" -eq 1 ]; then
+	if [ "$(_NVRAM_Get_ http_enable)" -eq 1 ]
+	then
 		urlProto="https"
 	else
 		urlProto="http"
 	fi
-	if [ -n "$(_NVRAM_Get_ lan_domain)" ]; then
-		urlDomain="$(_NVRAM_Get_ lan_hostname).$(_NVRAM_Get_ lan_domain)"
-	else
+
+	lanDomain="$(_NVRAM_Get_ lan_domain)"
+	if [ -z "$lanDomain" ]
+	then
 		urlDomain="$LAN_IPaddr"
+	else
+		urlDomain="$(_NVRAM_Get_ lan_hostname).$lanDomain"
 	fi
 
-	lanPort="$(_NVRAM_Get_ ${urlProto}_lanport)"
+	lanPort="$(_NVRAM_Get_ "${urlProto}_lanport")"
 	if [ "$lanPort" -eq 80 ] || [ "$lanPort" -eq 443 ]
 	then
 		urlPort=""
 	else
-		urlPort=":$lanPort)"
+		urlPort=":$lanPort"
 	fi
 
 	if echo "$urlPage" | grep -qE "^${webPageFileRegExp}$" && \
