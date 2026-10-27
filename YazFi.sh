@@ -4826,7 +4826,8 @@ Menu_Status()
 
 					if [ -n "$GUEST_IPADDR" ]
 					then
-						GUEST_HOST="$(arp "$GUEST_IPADDR" | grep "$IFACE" | awk '{print $1}' | cut -f1 -d ".")"
+						GUEST_HOST="$(nvram get custom_clientlist | grep -ioE "<[^<]*>$GUEST_MACADDR" | awk -F ">" '{print $(NF-1)}' | tr -d '<')"
+						[ -z "$GUEST_HOST" ] && GUEST_HOST="$(arp "$GUEST_IPADDR" | grep "$IFACE" | awk '{print $1}' | cut -f1 -d ".")"
 						if [ -z "$GUEST_HOST" ] || [ "$GUEST_HOST" = "?" ]
 						then
 							GUEST_HOST="$(grep -i "$GUEST_MACADDR" "$DNSMASQ_LEASES" | eval "$NOT_LANIP" | awk '{print $4}')"
@@ -4845,7 +4846,8 @@ Menu_Status()
 					elif [ -n "$FOUND_IPADDR" ]
 					then
 						GUEST_IPADDR="Not in Guest Net"
-						GUEST_HOST="$(arp "$FOUND_IPADDR" | grep "$IFACE" | awk '{print $1}' | cut -f1 -d ".")"
+						GUEST_HOST="$(nvram get custom_clientlist | grep -ioE "<[^<]*>$GUEST_MACADDR" | awk -F ">" '{print $(NF-1)}' | tr -d '<')"
+						[ -z "$GUEST_HOST" ] && GUEST_HOST="$(arp "$FOUND_IPADDR" | grep "$IFACE" | awk '{print $1}' | cut -f1 -d ".")"
 						if [ -z "$GUEST_HOST" ] || [ "$GUEST_HOST" = "?" ]
 						then
 							GUEST_HOST="$(grep -i "$GUEST_MACADDR" "$DNSMASQ_LEASES" | awk '{print $4}')"
