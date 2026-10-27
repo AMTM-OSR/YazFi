@@ -101,6 +101,31 @@ function yazfiFallbackSourceClient()
     };
 }
 
+function yazfiSavedClients()
+{
+    var saved = {};
+    var list = "";
+
+    /* The Network Map page keeps the latest names in custom_name, updated on each Apply. */
+    try {
+        if (typeof parent.custom_name === "string")
+            list = parent.custom_name;
+        else if (typeof card_client_variable !== "undefined")
+            list = card_client_variable.custom_clientlist;
+    }
+    catch (e) {}
+
+    var rows = String(list || "").split("<");
+    for (var i = 0; i < rows.length; i++)
+    {
+        var fields = rows[i].split(">");
+        if (fields.length > 3 && fields[1])
+            saved[fields[1].toUpperCase()] = { nickName: fields[0], type: fields[3] || "0" };
+    }
+
+    return saved;
+}
+
 function yazfiMergeIntoOriginData()
 {
     try {
@@ -117,6 +142,7 @@ function yazfiMergeIntoOriginData()
             block.maclist = [];
 
         var i, key, seed = null;
+        var saved = yazfiSavedClients();
 
         /* Remove clients inserted during the previous rebuild. */
         for (i = block.maclist.length - 1; i >= 0; i--)
@@ -174,12 +200,12 @@ function yazfiMergeIntoOriginData()
             obj.ip6 = "";
             obj.ip6_prefix = "";
             obj.name = guest.name ? String(guest.name) : mac;
-            obj.nickName = "";
+            obj.nickName = saved[mac] ? saved[mac].nickName : "";
             obj.isOnline = "1";
             obj.isWL = String(guest.isWL || "1");
             obj.isGN = String(guest.isGN || "1");
             obj.rssi = String(guest.rssi || "-99");
-            obj.type = "0";
+            obj.type = saved[mac] ? saved[mac].type : "0";
             obj.defaultType = "0";
             obj.isGateway = "0";
             obj.isWebServer = "0";
