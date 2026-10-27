@@ -2089,7 +2089,7 @@ NetworkMap_JSON_Escape()
 NetworkMap_Generate_JSON()
 {
 	local TMPJSON FIRST IFACE IFACETAG IFADDR RADIO GUEST_INDEX ISWL
-	local MAC IP LEASE LEASE_IP NAME RSSI
+	local MAC IP LEASE LEASE_IP RESERVED_IP NAME RSSI IPMETHOD
 	local STAINFO CURTX CURRX CONNECTED WLCONNECTTIME
 	local MAC_UPPER JMAC JIP JNAME JIFACE
 	local JCURTX JCURRX JWLCONNECTTIME
@@ -2141,8 +2141,16 @@ NetworkMap_Generate_JSON()
 						tolower($5) == tolower(m) { print $1; exit }
 					')"
 				fi
-				[ -n "$IP" ] || IP="$(Get_Reserved_IP "$MAC")"
+				RESERVED_IP="$(Get_Reserved_IP "$MAC")"
+				[ -n "$IP" ] || IP="$RESERVED_IP"
 				[ -z "$IP" ] && continue
+
+				if [ -z "$LEASE_IP" ]
+				then IPMETHOD="Static"
+				elif [ -n "$RESERVED_IP" ]
+				then IPMETHOD="Manual"
+				else IPMETHOD="DHCP"
+				fi
 
 				if [ -z "$NAME" ] || [ "$NAME" = "*" ]
 				then NAME="$MAC"
@@ -2201,7 +2209,7 @@ NetworkMap_Generate_JSON()
 
 				[ "$FIRST" -eq 1 ] || printf ',' >> "$TMPJSON"
 				FIRST=0
-				printf '{"mac":"%s","ip":"%s","name":"%s","isWL":"%s","isGN":"%s","rssi":"%s","iface":"%s","curTx":"%s","curRx":"%s","wlConnectTime":"%s"}' \
+				printf '{"mac":"%s","ip":"%s","name":"%s","isWL":"%s","isGN":"%s","rssi":"%s","iface":"%s","curTx":"%s","curRx":"%s","wlConnectTime":"%s","ipMethod":"%s"}' \
 					"$JMAC" \
 					"$JIP" \
 					"$JNAME" \
@@ -2211,7 +2219,8 @@ NetworkMap_Generate_JSON()
 					"$JIFACE" \
 					"$JCURTX" \
 					"$JCURRX" \
-					"$JWLCONNECTTIME" >> "$TMPJSON"
+					"$JWLCONNECTTIME" \
+					"$IPMETHOD" >> "$TMPJSON"
 			done
 		done
 	fi
