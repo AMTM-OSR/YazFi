@@ -2070,6 +2070,14 @@ NetworkMap_Config_Enabled()
 	esac
 }
 
+Get_Reserved_IP()
+{
+	{
+		sed -n 's/^dhcp-host=//p' /etc/dnsmasq.conf
+		sed -n 's/^dhcp-hostsfile=\([^ ]*\).*/\1/p' /etc/dnsmasq.conf | xargs cat 2>/dev/null
+	} | grep -i "$1" | tr ',' '\n' | grep -E '^([0-9]{1,3}\.){3}[0-9]{1,3}$' | head -n 1
+}
+
 NetworkMap_JSON_Escape()
 {
 	printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g'
@@ -2081,7 +2089,7 @@ NetworkMap_JSON_Escape()
 NetworkMap_Generate_JSON()
 {
 	local TMPJSON FIRST IFACE IFACETAG IFADDR RADIO GUEST_INDEX ISWL
-	local MAC IP LEASE LEASE_IP NAME RSSI
+	local MAC IP LEASE LEASE_IP RESERVED_IP NAME RSSI IPMETHOD
 	local STAINFO CURTX CURRX CONNECTED WLCONNECTTIME
 	local MAC_UPPER JMAC JIP JNAME JIFACE
 	local JCURTX JCURRX JWLCONNECTTIME
@@ -2133,7 +2141,16 @@ NetworkMap_Generate_JSON()
 						tolower($5) == tolower(m) { print $1; exit }
 					')"
 				fi
+				RESERVED_IP="$(Get_Reserved_IP "$MAC")"
+				[ -n "$IP" ] || IP="$RESERVED_IP"
 				[ -z "$IP" ] && continue
+
+				if [ -z "$LEASE_IP" ]
+				then IPMETHOD="Static"
+				elif [ -n "$RESERVED_IP" ]
+				then IPMETHOD="Manual"
+				else IPMETHOD="DHCP"
+				fi
 
 				if [ -z "$NAME" ] || [ "$NAME" = "*" ]
 				then NAME="$MAC"
@@ -2192,7 +2209,7 @@ NetworkMap_Generate_JSON()
 
 				[ "$FIRST" -eq 1 ] || printf ',' >> "$TMPJSON"
 				FIRST=0
-				printf '{"mac":"%s","ip":"%s","name":"%s","isWL":"%s","isGN":"%s","rssi":"%s","iface":"%s","curTx":"%s","curRx":"%s","wlConnectTime":"%s"}' \
+				printf '{"mac":"%s","ip":"%s","name":"%s","isWL":"%s","isGN":"%s","rssi":"%s","iface":"%s","curTx":"%s","curRx":"%s","wlConnectTime":"%s","ipMethod":"%s"}' \
 					"$JMAC" \
 					"$JIP" \
 					"$JNAME" \
@@ -2202,7 +2219,8 @@ NetworkMap_Generate_JSON()
 					"$JIFACE" \
 					"$JCURTX" \
 					"$JCURRX" \
-					"$JWLCONNECTTIME" >> "$TMPJSON"
+					"$JWLCONNECTTIME" \
+					"$IPMETHOD" >> "$TMPJSON"
 			done
 		done
 	fi
@@ -4798,9 +4816,6 @@ Menu_Status()
 					##----------------------------------------##
 					## Modified by Martinski W. [2023-Dec-06] ##
 					##----------------------------------------##
-					GUEST_ARPCOUNT="$(grep -ic "$GUEST_MACADDR" "$ARP_CACHE")"
-					[ "$GUEST_ARPCOUNT" -eq 0 ] && continue
-
 					GUEST_ARPINFO="$(grep -i "$GUEST_MACADDR" "$ARP_CACHE" | grep "$IFACE" | eval "$NOT_LANIP")"
 					GUEST_IPADDR="$(echo "$GUEST_ARPINFO" | awk -F ' ' '{print $1}')"
 					GUEST_ARPFLAG="$(echo "$GUEST_ARPINFO" | awk -F ' ' '{print $3}')"
@@ -4823,6 +4838,7 @@ Menu_Status()
 						FOUND_IPADDR="$(grep -i "$GUEST_MACADDR" "$DNSMASQ_LEASES" | awk '{print $3}')"
 						GUEST_IPADDR="$(grep -i "$GUEST_MACADDR" "$DNSMASQ_LEASES" | eval "$NOT_LANIP" | awk '{print $3}')"
 					fi
+					[ -z "$GUEST_IPADDR" ] && GUEST_IPADDR="$(Get_Reserved_IP "$GUEST_MACADDR" | eval "$NOT_LANIP")"
 
 					if [ -n "$GUEST_IPADDR" ]
 					then
