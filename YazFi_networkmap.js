@@ -101,6 +101,42 @@ function yazfiFallbackSourceClient()
     };
 }
 
+function yazfiParentalControlEnabled()
+{
+    /* The client dialogs turn Parental Control on when saving a block, without reloading the page. */
+    var form = document.list_form || document.card_clientlist_form;
+    if (form && form.MULTIFILTER_ALL)
+        return form.MULTIFILTER_ALL.value === "1";
+    return '<% nvram_get("MULTIFILTER_ALL"); %>' === "1";
+}
+
+function yazfiInternetMode(mac)
+{
+    var macs, states;
+
+    if (!yazfiParentalControlEnabled())
+        return "allow";
+
+    /* The home page keeps its own copy of these settings and updates it after saving. */
+    if (typeof MULTIFILTER_MAC_orig !== "undefined")
+    {
+        macs = MULTIFILTER_MAC_orig.split(">");
+        states = MULTIFILTER_ENABLE_orig.split(">");
+    }
+    else
+    {
+        macs = card_client_variable.MULTIFILTER_MAC.split(">");
+        states = card_client_variable.MULTIFILTER_ENABLE.split(">");
+    }
+
+    switch (states[macs.indexOf(mac)])
+    {
+        case "2": return "block";
+        case "1": return "time";
+        default: return "allow";
+    }
+}
+
 function yazfiMergeIntoOriginData()
 {
     try {
@@ -195,8 +231,8 @@ function yazfiMergeIntoOriginData()
             obj.ipMethod = "DHCP";
             obj.qosLevel = "";
             obj.wtfast = "0";
-            obj.internetMode = "allow";
-            obj.internetState = "1";
+            obj.internetMode = yazfiInternetMode(mac);
+            obj.internetState = (obj.internetMode === "block") ? 0 : 1;
             obj.ROG = "0";
 
             obj.curTx = (guest.curTx !== undefined && guest.curTx !== null)
