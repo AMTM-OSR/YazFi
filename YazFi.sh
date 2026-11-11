@@ -2969,6 +2969,32 @@ Firewall_BlockInternet()
 	done
 }
 
+# The firmware applies Parental Control blocks only to LAN bridge traffic, so guest clients need their own rules #
+Firewall_ParentalControl()
+{
+	RULES=$(iptables -nvL "$FWRD" --line-number | grep "parental control block" | awk '{print $1}' | sort -nr)
+	for RULENO in $RULES
+	do
+		iptables -D "$FWRD" "$RULENO"
+	done
+
+	[ "$1" = "create" ] || return 0
+	[ "$(_NVRAM_Get_ MULTIFILTER_ALL)" = "1" ] || return 0
+
+	STATES="$(_NVRAM_Get_ MULTIFILTER_ENABLE)>"
+	for MAC in $(_NVRAM_Get_ MULTIFILTER_MAC | tr '>' ' ')
+	do
+		STATE="${STATES%%>*}"
+		STATES="${STATES#*>}"
+		[ "$STATE" = "2" ] || continue
+
+		for IFACE_OUT in "$IFACE_WAN" tun1+ wgc+
+		do
+			iptables -I "$FWRD" -i wl+ -o "$IFACE_OUT" -m mac --mac-source "$MAC" -m comment --comment "parental control block" -j "$LGRJT"
+		done
+	done
+}
+
 Firewall_DNS()
 {
 	ACTIONS=""
@@ -3676,6 +3702,8 @@ Config_Networks()
 			Firewall_NAT delete "$IFACE" 2>/dev/null
 		fi
 	done
+
+	Firewall_ParentalControl create 2>/dev/null
 
 	if [ "$(_FWVersionStrToNum_ "$fwInstalledBranchVer")" -lt "$(_FWVersionStrToNum_ 3004.386.3)" ]
 	then
