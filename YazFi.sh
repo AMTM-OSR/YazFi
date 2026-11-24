@@ -17,7 +17,7 @@
 ##       Guest Network DHCP script and for       ##
 ##            AsusWRT-Merlin firmware            ##
 ###################################################
-# Last Modified: 2026-Nov-22
+# Last Modified: 2026-Nov-23
 #--------------------------------------------------
 
 ######       Shellcheck directives     ######
@@ -43,7 +43,7 @@
 readonly SCRIPT_NAME="YazFi"
 readonly YAZFI_VERSION="v4.5.0"
 readonly SCRIPT_VERSION="v4.5.0"
-readonly SCRIPT_VERSTAG="26112223"
+readonly SCRIPT_VERSTAG="26112300"
 SCRIPT_BRANCH="develop"
 SCRIPT_REPO="https://raw.githubusercontent.com/AMTM-OSR/${SCRIPT_NAME}/$SCRIPT_BRANCH"
 
@@ -62,7 +62,7 @@ readonly SHARED_REPO="https://raw.githubusercontent.com/AMTM-OSR/shared-jy/${SCR
 readonly SHARED_WEB_DIR="${SCRIPT_WEBPAGE_DIR}/shared-jy"
 readonly TEMP_MENU_TREE="/tmp/menuTree.js"
 
-# To handle and prevent stuck 'nvram' and 'wl' commands #
+# To handle stuck 'nvram' and 'wl' commands #
 readonly StuckCmdsCONFIG="${SCRIPT_DIR}/StuckCmds.conf"
 readonly CRU_Cmd_SH="${SHARED_LIBS_DIR}/CRU_Cmd.sh"
 readonly CRU_CmdHandlerSH="${SHARED_LIBS_DIR}/CRU_CmdHandler.sh"
@@ -1152,8 +1152,8 @@ _PromptForMountingModifiedCRU_()
 
     local retCode=1
 
-    printf "\n${BOLD} Would you like to mount a modified CRU script to handle and"
-    printf "\n prevent stuck nvram commands that can happen when running the"
+    printf "\n${BOLD} Would you like to mount a modified CRU script to handle"
+    printf "\n stuck 'nvram' commands that can happen when running the"
     printf "\n original built-in 'cru' command? [Y/N]${CLRct} "
     if ! _PromptYESorNO_
     then return 1
@@ -3843,7 +3843,7 @@ _CheckStuckCmdsConfig_()
 		if ! grep -q '^USE_WL_CMD_HANDLR_LIB=' "$StuckCmdsCONFIG"
 		then
 			{
-			   echo "# To handle and prevent stuck 'wl' commands #"
+			   echo "# To handle stuck 'wl' commands #"
 			   printf "USE_WL_CMD_HANDLR_LIB=true\n\n"
 			} >> "$StuckCmdsCONFIG"
 		fi
@@ -3855,7 +3855,7 @@ _CheckStuckCmdsConfig_()
 		if ! grep -q '^USE_NVRAM_CMD_HANDLR_LIB=' "$StuckCmdsCONFIG"
 		then
 			{
-			   echo "# To handle and prevent stuck 'nvram' commands #"
+			   echo "# To handle stuck 'nvram' commands #"
 			   printf "USE_NVRAM_CMD_HANDLR_LIB=true\n\n"
 			} >> "$StuckCmdsCONFIG"
 		fi
@@ -3865,9 +3865,9 @@ _CheckStuckCmdsConfig_()
 		fi
 	else
 		{
-		   echo "# To handle and prevent stuck 'wl' commands #"
+		   echo "# To handle stuck 'wl' commands #"
 		   printf "USE_WL_CMD_HANDLR_LIB=true\n\n"
-		   echo "# To handle and prevent stuck 'nvram' commands #"
+		   echo "# To handle stuck 'nvram' commands #"
 		   printf "USE_NVRAM_CMD_HANDLR_LIB=true\n\n"
 		} > "$StuckCmdsCONFIG"
 		chmod 644 "$StuckCmdsCONFIG"
@@ -3892,7 +3892,7 @@ _WL_CmdLibHandler_()
                ! grep -q '^USE_WL_CMD_HANDLR_LIB=' "$StuckCmdsCONFIG"
 		    then
                 {
-                   echo "# To handle and prevent stuck 'wl' commands #"
+                   echo "# To handle stuck 'wl' commands #"
                    printf "USE_WL_CMD_HANDLR_LIB=true\n\n"
                 } >> "$StuckCmdsCONFIG"
             fi
@@ -3913,10 +3913,10 @@ _WL_CmdLibHandler_()
             if [ ! -s "$StuckCmdsCONFIG" ] || \
                ! grep -q '^USE_WL_CMD_HANDLR_LIB=' "$StuckCmdsCONFIG"
 		    then
-               {
-				  echo "# To handle and prevent stuck 'wl' commands #"
-                  printf "USE_WL_CMD_HANDLR_LIB=false\n\n"
-               } >> "$StuckCmdsCONFIG"
+                {
+                   echo "# To handle stuck 'wl' commands #"
+                   printf "USE_WL_CMD_HANDLR_LIB=false\n\n"
+                } >> "$StuckCmdsCONFIG"
             fi
             if ! grep -qE '^USE_WL_CMD_HANDLR_LIB=false$' "$StuckCmdsCONFIG"
             then
@@ -3964,7 +3964,7 @@ _NVRAM_CmdLibHandler_()
                ! grep -q '^USE_NVRAM_CMD_HANDLR_LIB=' "$StuckCmdsCONFIG"
 		    then
                 {
-                   echo "# To handle and prevent stuck 'nvram' commands #"
+                   echo "# To handle stuck 'nvram' commands #"
                    printf "USE_NVRAM_CMD_HANDLR_LIB=true\n\n"
                 } >> "$StuckCmdsCONFIG"
             fi
@@ -3985,10 +3985,10 @@ _NVRAM_CmdLibHandler_()
             if [ ! -s "$StuckCmdsCONFIG" ] || \
                ! grep -q '^USE_NVRAM_CMD_HANDLR_LIB=' "$StuckCmdsCONFIG"
 		    then
-               {
-                  echo "# To handle and prevent stuck 'nvram' commands #"
-                  printf "USE_NVRAM_CMD_HANDLR_LIB=false\n\n"
-               } >> "$StuckCmdsCONFIG"
+                {
+                   echo "# To handle stuck 'nvram' commands #"
+                   printf "USE_NVRAM_CMD_HANDLR_LIB=false\n\n"
+                } >> "$StuckCmdsCONFIG"
             fi
             if ! grep -qE '^USE_NVRAM_CMD_HANDLR_LIB=false$' "$StuckCmdsCONFIG"
             then
@@ -4054,7 +4054,7 @@ _CRU_CmdHandler_()
         MOUNT)
             if ! $CRU_CmdHandlerSH -checkEnable >/dev/null
             then
-                Print_Output false "Mounting the modified CRU script [$MODF_CRU_CMD] is currently DISABLED." "$PASS"
+                Print_Output false "Mounting the modified CRU script [$CRU_Cmd_SH] is currently DISABLED." "$PASS"
                 return 1
             fi
             if $CRU_CmdHandlerSH -mount >/dev/null
@@ -4079,9 +4079,9 @@ _CRU_CmdHandler_()
         STATUS)
             if $CRU_CmdHandlerSH -checkEnable >/dev/null
             then
-                Print_Output false "Mounting the modified CRU script [$MODF_CRU_CMD] is currently ENABLED." "$PASS"
+                Print_Output false "Mounting the modified CRU script [$CRU_Cmd_SH] is currently ENABLED." "$PASS"
             else
-                Print_Output false "Mounting the modified CRU script [$MODF_CRU_CMD] is currently DISABLED." "$PASS"
+                Print_Output false "Mounting the modified CRU script [$CRU_Cmd_SH] is currently DISABLED." "$PASS"
             fi
             if $CRU_CmdHandlerSH -status >/dev/null
             then
@@ -4498,6 +4498,7 @@ Menu_Startup()
 	fi
 	Create_Dirs
 	Create_Symlinks
+	_CheckStuckCmdsConfig_
 	Auto_Cron create 2>/dev/null
 	Auto_NetworkMapServiceEventEnd create 2>/dev/null
 	Set_Version_Custom_Settings local "$SCRIPT_VERSION"
@@ -5467,20 +5468,20 @@ Available commands:
   $SCRIPT_NAME develop          switch to development branch version
   $SCRIPT_NAME stable           switch to stable/production branch version
 
-For handling of 'nvram' and 'wl' stuck commands:
+For handling of stuck 'nvram' and 'wl' commands:
 
-  $SCRIPT_NAME wlCmdLibEnable       Enable library script for 'wl' stuck commands  
-  $SCRIPT_NAME wlCmdLibDisable      Disable library script for 'wl' stuck commands
-  $SCRIPT_NAME wlCmdLibStatus       Report library script status for 'wl' stuck commands
+  $SCRIPT_NAME wlCmdLibEnable       Enable library script that handles stuck 'wl' commands  
+  $SCRIPT_NAME wlCmdLibDisable      Disable library script that handles stuck 'wl' commands
+  $SCRIPT_NAME wlCmdLibStatus       Report status of library script that handles stuck 'wl' commands
 
-  $SCRIPT_NAME nvramCmdLibEnable    Enable library script for 'nvram' stuck commands 
-  $SCRIPT_NAME nvramCmdLibDisable   Disable library script for 'nvram' stuck commands
-  $SCRIPT_NAME nvramCmdLibStatus    Report library script status for 'nvram' stuck commands
+  $SCRIPT_NAME nvramCmdLibEnable    Enable library script that handles stuck 'nvram' commands 
+  $SCRIPT_NAME nvramCmdLibDisable   Disable library script that handles stuck 'nvram' commands
+  $SCRIPT_NAME nvramCmdLibStatus    Report status of library script that handles stuck 'nvram' commands
 
-  $SCRIPT_NAME cruCmdMountOn        To mount a modified version of the built-in 'cru' script. 
+  $SCRIPT_NAME cruCmdMountOn        To mount a modified version of the built-in 'cru' script
   $SCRIPT_NAME cruCmdMountOff       To unmount a modified version of the built-in 'cru' script
-  $SCRIPT_NAME cruCmdMountEnable    To enable mounting a modified version of the built-in 'cru' script.
-  $SCRIPT_NAME cruCmdMountDisable   To disable mounting a modified version of the built-in 'cru' script.
+  $SCRIPT_NAME cruCmdMountEnable    To enable mounting a modified version of the built-in 'cru' script
+  $SCRIPT_NAME cruCmdMountDisable   To disable mounting a modified version of the built-in 'cru' script
   $SCRIPT_NAME cruCmdMountStatus    Reports whether the modified version of the built-in 'cru' script
                              is mounted or unmounted.
 EOF
