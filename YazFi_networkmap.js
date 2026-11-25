@@ -192,7 +192,7 @@ function yazfiMergeIntoOriginData()
             obj.group = "";
             obj.callback = "";
             obj.keeparp = "0";
-            obj.ipMethod = "DHCP";
+            obj.ipMethod = guest.ipMethod ? String(guest.ipMethod) : "DHCP";
             obj.qosLevel = "";
             obj.wtfast = "0";
             obj.internetMode = "allow";
