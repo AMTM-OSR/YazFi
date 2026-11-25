@@ -537,7 +537,12 @@ Iface_Manage()
 {
 	case $1 in
 		create)
-			ifconfig "$2" "$(eval echo '$'"$(Get_Iface_Var "$2")"_IPADDR | cut -f1-3 -d".").$(echo "$LAN_IPaddr" | cut -f4 -d".")" netmask 255.255.255.0
+			IFACE_IPADDR="$(eval echo '$'"$(Get_Iface_Var "$2")"_IPADDR | cut -f1-3 -d".").$(echo "$LAN_IPaddr" | cut -f4 -d".")"
+			if ! ifconfig "$2" | grep -q "inet addr:$IFACE_IPADDR "
+			then
+				ifconfig "$2" "$IFACE_IPADDR" netmask 255.255.255.0
+				BOUNCECLIENTS="true"
+			fi
 		;;
 		delete)
 			ifconfig "$2" 0.0.0.0
@@ -3513,6 +3518,7 @@ DHCP_Conf()
 			then
 				cp "$TMPCONF" "$DNSCONF"
 				service restart_dnsmasq >/dev/null 2>&1
+				BOUNCECLIENTS="true"
 				Print_Output true "DHCP configuration updated" "$PASS"
 				sleep 2
 			fi
@@ -3550,6 +3556,7 @@ Config_Networks()
 	Print_Output true "$SCRIPT_NAME $SCRIPT_VERSION starting up" "$PASS"
 	WIRELESSRESTART="false"
 	GUESTLANENABLED="false"
+	BOUNCECLIENTS="false"
 
 	Create_Dirs
 	Create_Symlinks
@@ -3737,7 +3744,7 @@ Config_Networks()
 	elif [ "$WIRELESSRESTART" = "false" ]
 	then
 		Execute_UserScripts
-		Iface_BounceClients
+		[ "$BOUNCECLIENTS" = "true" ] && Iface_BounceClients
 	fi
 
 	NetworkMap_Apply
