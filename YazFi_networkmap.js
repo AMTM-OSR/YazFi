@@ -146,19 +146,27 @@ function yazfiMergeIntoOriginData()
                 continue;
 
             var mac = String(guest.mac).toUpperCase();
-            var j, obj, exists = false;
+            var j, obj, found = null;
 
             for (j = 0; j < block.maclist.length; j++)
             {
                 if (String(block.maclist[j]).toUpperCase() === mac)
                 {
-                    exists = true;
+                    found = block.maclist[j];
                     break;
                 }
             }
 
+            /* The firmware only scans the main LAN, so its IP for a guest client can be stale. */
+            if (found !== null)
+            {
+                if (block[found])
+                    block[found].ip = String(guest.ip);
+                continue;
+            }
+
             /* Never replace a real ASUS/networkmap entry. */
-            if (exists || (block[mac] && block[mac]._yazfiInjected !== "1"))
+            if (block[mac] && block[mac]._yazfiInjected !== "1")
                 continue;
 
             try {
